@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "patchwitness"
+version = "0.1.0"
+description = "Evidence-first trust gates for AI-generated code changes"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "PatchWitness contributors" }]
+keywords = [
+  "ai-agents",
+  "coding-agents",
+  "devtools",
+  "policy-as-code",
+  "supply-chain-security",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Security",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/pangxueyuan2-creator/patchwitness"
+Repository = "https://github.com/pangxueyuan2-creator/patchwitness"
+Issues = "https://github.com/pangxueyuan2-creator/patchwitness/issues"
+Changelog = "https://github.com/pangxueyuan2-creator/patchwitness/blob/main/CHANGELOG.md"
+
+[project.scripts]
+patchwitness = "patchwitness.cli:main"
+
+[project.entry-points."patchwitness.analyzers"]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2.2",
+  "mypy>=1.15",
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/patchwitness"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["patchwitness"]
+

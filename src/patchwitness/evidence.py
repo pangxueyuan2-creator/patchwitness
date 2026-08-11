@@ -1,0 +1,144 @@
+"""Evidence capture, canonicalization, atomic persistence, and verification."""
+
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import os
+import platform
+import tempfile
+from contextlib import suppress
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from patchwitness import git
+from patchwitness.checks import run_checks
+from patchwitness.models import Contract, EvidencePack, GateStatus, Severity
+from patchwitness.policy import evaluate_policy
+
+SCHEMA_VERSION = "patchwitness.dev/evidence/v1"
+
+
+class EvidenceError(ValueError):
+    """Raised when evidence is malformed or fails integrity checks."""
+
+
+def capture_evidence(
+    root: Path,
+    contract: Contract,
+    *,
+    base: str = "HEAD",
+    execute_checks: bool = True,
+    parallel_checks: bool = True,
+    max_workers: int = 4,
+    contract_source: str = "working-tree",
+) -> EvidencePack:
+    repository = git.find_root(root)
+    base_revision = git.resolve_revision(repository, base)
+    changes = git.collect_changes(repository, base_revision)
+    check_results = (
+        run_checks(
+            repository,
+            contract.checks,
+            parallel=parallel_checks,
+            max_workers=max_workers,
+        )
+        if execute_checks
+        else ()
+    )
+    findings = evaluate_policy(contract, changes, check_results)
+    status = (
+        GateStatus.FAIL
+        if any(finding.severity == Severity.ERROR for finding in findings)
+        else GateStatus.PASS
+    )
+    total_lines = sum(change.changed_lines for change in changes)
+    captured_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    unsigned: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "tool": {"name": "patchwitness", "version": "0.1.0"},
+        "repository": {
+            "root_name": repository.name,
+            "base_revision": base_revision,
+            "head_revision": git.head_revision(repository),
+            "branch": git.branch_name(repository),
+            "remote": git.remote_url(repository),
+            "dirty": git.is_dirty(repository),
+        },
+        "contract": {
+            **contract.to_dict(),
+            "source": contract_source,
+        },
+        "changes": [change.to_dict() for change in changes],
+        "checks": [result.to_dict() for result in check_results],
+        "findings": [finding.to_dict() for finding in findings],
+        "summary": {
+            "status": status.value,
+            "files_changed": len(changes),
+            "lines_changed": total_lines,
+            "checks_passed": sum(result.passed for result in check_results),
+            "checks_total": len(check_results),
+            "errors": sum(finding.severity == Severity.ERROR for finding in findings),
+            "warnings": sum(finding.severity == Severity.WARNING for finding in findings),
+        },
+        "captured_at": captured_at,
+        "extensions": {
+            "environment": {
+                "os": platform.system(),
+                "architecture": platform.machine(),
+                "python": platform.python_version(),
+            }
+        },
+    }
+    payload_sha256 = _digest(unsigned)
+    return EvidencePack.from_dict({**unsigned, "payload_sha256": payload_sha256})
+
+
+def verify_evidence(pack: EvidencePack | dict[str, Any]) -> EvidencePack:
+    evidence = pack if isinstance(pack, EvidencePack) else EvidencePack.from_dict(pack)
+    if evidence.schema_version != SCHEMA_VERSION:
+        raise EvidenceError(f"unsupported schema version: {evidence.schema_version}")
+    value = evidence.to_dict()
+    expected = str(value.pop("payload_sha256"))
+    actual = _digest(value)
+    if not hmac.compare_digest(expected, actual):
+        raise EvidenceError(f"payload digest mismatch: expected {expected}, computed {actual}")
+    return evidence
+
+
+def load_evidence(path: Path) -> EvidencePack:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise EvidenceError(f"cannot load evidence {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise EvidenceError(f"invalid evidence {path}: root must be an object")
+    try:
+        return EvidencePack.from_dict(value)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise EvidenceError(f"invalid evidence {path}: {exc}") from exc
+
+
+def write_evidence(pack: EvidencePack, path: Path) -> Path:
+    verified = verify_evidence(pack)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(verified.to_dict(), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent, text=True)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as output:
+            output.write(payload)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        with suppress(OSError):
+            os.unlink(temporary)
+        raise
+    return path
+
+
+def _digest(value: dict[str, Any]) -> str:
+    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
