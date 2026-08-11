@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import re
 import tomllib
+from collections.abc import Iterable
 from pathlib import Path
 
 from patchwitness.models import Contract
@@ -88,3 +91,68 @@ def initialize_project(root: Path, *, force: bool = False) -> Path:
             handle.write(f"{prefix}{marker}\n")
     return target
 
+
+def create_task_contract(
+    root: Path,
+    contract_id: str,
+    *,
+    goal: str,
+    allowed_paths: Iterable[str],
+    denied_paths: Iterable[str] = (),
+    protected_paths: Iterable[str] = (),
+    checks: Iterable[tuple[str, str]] = (),
+    max_files: int = 25,
+    max_lines: int = 1_000,
+    force: bool = False,
+) -> Path:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}", contract_id):
+        raise ConfigError("contract id must be 1-100 safe filename characters")
+    allowed = tuple(allowed_paths)
+    check_specs = tuple(checks)
+    if not allowed:
+        raise ConfigError("at least one --allow pattern is required")
+    target = root / ".patchwitness" / "contracts" / f"{contract_id}.toml"
+    if target.exists() and not force:
+        raise ConfigError(f"{target} already exists; use --force to replace it")
+    default_protected = (
+        ".github/workflows/**",
+        ".patchwitness.toml",
+        ".patchwitness/contracts/**",
+    )
+    lines = [
+        "version = 1",
+        f"id = {_toml_string(contract_id)}",
+        f"goal = {_toml_string(goal)}",
+        "",
+        "[policy]",
+        f"allowed_paths = {_toml_array(allowed)}",
+        f"denied_paths = {_toml_array(tuple(denied_paths))}",
+        f"protected_paths = {_toml_array(tuple(protected_paths) or default_protected)}",
+        f"max_files = {max_files}",
+        f"max_lines = {max_lines}",
+        "allow_binary = false",
+        "allow_dependency_changes = false",
+        f"require_tests = {'true' if check_specs else 'false'}",
+    ]
+    for check_id, command in check_specs:
+        lines.extend(
+            [
+                "",
+                "[[checks]]",
+                f"id = {_toml_string(check_id)}",
+                f"command = {_toml_string(command)}",
+                "required = true",
+                "timeout_seconds = 900",
+            ]
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return target
+
+
+def _toml_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def _toml_array(values: Iterable[str]) -> str:
+    return "[" + ", ".join(_toml_string(value) for value in values) + "]"

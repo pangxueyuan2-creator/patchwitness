@@ -13,6 +13,7 @@ from pathlib import Path
 from patchwitness import __version__
 from patchwitness.config import (
     ConfigError,
+    create_task_contract,
     initialize_project,
     load_contract,
     load_contract_bytes,
@@ -34,6 +35,13 @@ from patchwitness.git import (
 from patchwitness.impact import analyze_impact
 from patchwitness.mcp import MCPServer
 from patchwitness.models import EvidencePack, GateStatus
+from patchwitness.reporters import (
+    explain_rule,
+    render_github_annotations,
+    render_markdown,
+    render_sarif,
+    write_report,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -85,6 +93,33 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp_parser = subparsers.add_parser("mcp", help="serve PatchWitness tools over stdio MCP")
     mcp_parser.add_argument("--root", default=".")
+
+    contract_parser = subparsers.add_parser("contract", help="create task-scoped trust contracts")
+    contract_commands = contract_parser.add_subparsers(dest="contract_command", required=True)
+    contract_new = contract_commands.add_parser("new", help="create a task contract")
+    contract_new.add_argument("id")
+    contract_new.add_argument("--goal", required=True)
+    contract_new.add_argument("--allow", action="append", required=True, dest="allowed")
+    contract_new.add_argument("--deny", action="append", default=[], dest="denied")
+    contract_new.add_argument("--protect", action="append", default=[], dest="protected")
+    contract_new.add_argument(
+        "--check", action="append", default=[], help="required check as ID=COMMAND"
+    )
+    contract_new.add_argument("--max-files", type=int, default=25)
+    contract_new.add_argument("--max-lines", type=int, default=1_000)
+    contract_new.add_argument("--force", action="store_true")
+
+    report_parser = subparsers.add_parser(
+        "report", help="render verified evidence for humans or CI"
+    )
+    report_parser.add_argument("evidence", type=Path)
+    report_parser.add_argument(
+        "--format", choices=("markdown", "sarif", "json", "github"), default="markdown"
+    )
+    report_parser.add_argument("--output", type=Path)
+
+    explain_parser = subparsers.add_parser("explain", help="explain a policy rule")
+    explain_parser.add_argument("rule_id")
     return parser
 
 
@@ -106,6 +141,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _impact(args)
         if args.command == "mcp":
             return MCPServer(Path(args.root)).serve()
+        if args.command == "contract":
+            return _contract(args)
+        if args.command == "report":
+            return _report(args)
+        if args.command == "explain":
+            return _explain(args)
     except (ConfigError, EvidenceError, GitError, OSError) as exc:
         return _error(str(exc), json_output=bool(args.json))
     parser.error(f"unknown command: {args.command}")
@@ -214,12 +255,79 @@ def _impact(args: argparse.Namespace) -> int:
     else:
         print(f"PatchWitness impact: {result['risk_level'].upper()} ({result['risk_score']}/100)")
         print(
-            f"  {len(result['direct_dependents'])} direct · "
-            f"{len(result['transitive_dependents'])} transitive · "
+            f"  {len(result['direct_dependents'])} direct | "
+            f"{len(result['transitive_dependents'])} transitive | "
             f"{len(result['affected_tests'])} tests"
         )
         print(f"  Indexed: {result['files_indexed']} files / {result['edges_indexed']} edges")
     return 0
+
+
+def _contract(args: argparse.Namespace) -> int:
+    if args.contract_command != "new":
+        raise ConfigError(f"unknown contract command: {args.contract_command}")
+    checks: list[tuple[str, str]] = []
+    for value in args.check:
+        if "=" not in value:
+            raise ConfigError("--check must use ID=COMMAND")
+        check_id, command = value.split("=", 1)
+        if not check_id.strip() or not command.strip():
+            raise ConfigError("--check must use non-empty ID=COMMAND")
+        checks.append((check_id.strip(), command.strip()))
+    target = create_task_contract(
+        find_root(),
+        args.id,
+        goal=args.goal,
+        allowed_paths=args.allowed,
+        denied_paths=args.denied,
+        protected_paths=args.protected,
+        checks=checks,
+        max_files=args.max_files,
+        max_lines=args.max_lines,
+        force=args.force,
+    )
+    return _emit(
+        {"ok": True, "contract": str(target), "message": "Task contract created"},
+        json_output=bool(args.json),
+    )
+
+
+def _report(args: argparse.Namespace) -> int:
+    pack = verify_evidence(load_evidence(args.evidence))
+    if args.output:
+        write_report(
+            pack,
+            args.output,
+            report_format=args.format,
+            evidence_path=str(args.evidence),
+        )
+        return _emit(
+            {"ok": True, "report": str(args.output), "message": "Report written"},
+            json_output=bool(args.json),
+        )
+    if args.format == "markdown":
+        print(render_markdown(pack), end="")
+    elif args.format == "sarif":
+        print(json.dumps(render_sarif(pack, evidence_path=str(args.evidence)), indent=2))
+    elif args.format == "json":
+        print(json.dumps(pack.to_dict(), indent=2, sort_keys=True))
+    else:
+        print(render_github_annotations(pack), end="")
+    return 0
+
+
+def _explain(args: argparse.Namespace) -> int:
+    title, description = explain_rule(args.rule_id)
+    return _emit(
+        {
+            "ok": True,
+            "rule_id": args.rule_id.upper(),
+            "title": title,
+            "description": description,
+            "message": f"{args.rule_id.upper()}: {title}",
+        },
+        json_output=bool(args.json),
+    )
 
 
 def _default_output(root: Path) -> Path:
@@ -239,9 +347,16 @@ def _print_pack(pack: EvidencePack, *, output: Path, json_output: bool) -> None:
     marker = "PASS" if pack.status == GateStatus.PASS else "FAIL"
     print(f"PatchWitness {marker}")
     print(
-        f"  {pack.summary['files_changed']} files · {pack.summary['lines_changed']} lines · "
+        f"  {pack.summary['files_changed']} files | {pack.summary['lines_changed']} lines | "
         f"{pack.summary['checks_passed']}/{pack.summary['checks_total']} checks"
     )
+    impact = dict(pack.extensions.get("impact", {}))
+    if impact:
+        print(
+            f"  Risk: {str(impact.get('risk_level', 'unknown')).upper()} "
+            f"({impact.get('risk_score', 'n/a')}/100) | "
+            f"{len(impact.get('direct_dependents', []))} direct dependents"
+        )
     for finding in pack.findings:
         location = f" [{finding['path']}]" if finding.get("path") else ""
         print(
@@ -253,31 +368,7 @@ def _print_pack(pack: EvidencePack, *, output: Path, json_output: bool) -> None:
 
 
 def _render_markdown(pack: EvidencePack) -> str:
-    lines = [
-        "## PatchWitness Change Passport",
-        "",
-        f"**Status:** `{pack.status.value.upper()}`  ",
-        f"**Evidence:** `{pack.payload_sha256}`  ",
-        f"**Base:** `{pack.repository['base_revision']}`",
-        "",
-        "| Signal | Value |",
-        "|---|---:|",
-        f"| Files changed | {pack.summary['files_changed']} |",
-        f"| Lines changed | {pack.summary['lines_changed']} |",
-        f"| Checks | {pack.summary['checks_passed']}/{pack.summary['checks_total']} |",
-        f"| Errors | {pack.summary['errors']} |",
-        "",
-    ]
-    if pack.findings:
-        lines.extend(["### Findings", ""])
-        for finding in pack.findings:
-            path = f" (`{finding['path']}`)" if finding.get("path") else ""
-            lines.append(
-                f"- **{finding['rule_id']}** {finding['message']}{path}"
-            )
-    else:
-        lines.append("No policy violations were found.")
-    return "\n".join(lines)
+    return render_markdown(pack)
 
 
 def _emit(value: dict[str, object], *, json_output: bool) -> int:
