@@ -47,10 +47,10 @@ patchwitness gate --base origin/main --policy-ref origin/main --clean-room
 
 PRs should explain the problem, the chosen behavior, tests run, compatibility impact, and security
 considerations. Small, reviewable changes merge faster. By contributing, you agree that your work is
-licensed under Apache-2.0.
+licensed under Apache-2.0. Review, triage, releases, and security response follow the documented
+[maintainer workflow](MAINTAINER_WORKFLOW.md).
 
 ## Analyzer plugins
 
 Most organization- or language-specific analysis should be an entry-point plugin instead of a core
 dependency. See [Plugin development](docs/plugin-development.md).
-

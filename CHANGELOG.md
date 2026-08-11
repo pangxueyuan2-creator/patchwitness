@@ -11,11 +11,15 @@ uses semantic versioning once the v1 compatibility contract is reached.
   documentation, while retaining an explicit no-affiliation disclaimer.
 - Reworked the README conversion path around a real one-minute risk demo, simpler try-first flow,
   visual terminal output, and a concise FAQ.
+- Added a five-minute trusted-base adoption path, explicit project-dependency setup for the GitHub
+  Action, and a runnable examples index.
 
 ### Added
 
 - Reproducible coding-agent risk demo with a committed terminal transcript and Change Passport.
 - 1280x640 social-preview artwork and an end-to-end demo integration test.
+- Source-linked OSS readiness scorecard and an explicit maintainer workflow for honest long-term
+  triage, review, releases, security response, and evidence updates.
 
 ### Planned
 

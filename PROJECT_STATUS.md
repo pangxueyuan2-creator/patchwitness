@@ -34,4 +34,5 @@ own trusted-base clean-room gate. Performance claims must come from committed ra
 
 At initial publication there are no legitimate claims of stars, forks, external contributors,
 downloads, dependents, testimonials, or production users. Those metrics will only be added when
-GitHub/package/community sources show real activity.
+GitHub/package/community sources show real activity. See the dated, source-linked
+[OSS readiness scorecard](OSS_READINESS.md).

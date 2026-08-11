@@ -1,8 +1,8 @@
 # Real-user discovery targets
 
-Validated on 2026-08-11 from the projects' current GitHub metadata and community discussions. This is
-a relevance map, not a mailing list. Do not open an issue or pull request merely to advertise
-PatchWitness.
+Validated on 2026-08-11 from the projects' current GitHub metadata and community discussions. The
+34 entries below are a relevance map, not a mailing list. Do not open an issue or pull request
+merely to advertise PatchWitness.
 
 ## Demand signals
 
@@ -49,6 +49,9 @@ only when a new or existing thread asks for a solution that PatchWitness can dem
 | [Microsoft AutoGen](https://github.com/microsoft/autogen) | Orchestrated agents can treat the passport as a deterministic tool result and approval gate. | Publish a minimal external sample rather than opening a product issue. | Structured JSON, deterministic gate, human approval. |
 | [LangGraph](https://github.com/langchain-ai/langgraph) | Stateful agent graphs can branch on a verified gate result instead of model self-assessment. | Produce a tiny conditional-edge example, then use a community showcase channel if available. | Stable exit codes and typed SDK result. |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | Role-based agent teams still need a non-agent source of truth for repository changes. | Demonstrate as a final verification task; avoid implying CrewAI's own review agents are insufficient for semantic review. | Independent mechanical evidence, not another reviewer role. |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | A terminal coding agent has the same post-task need for trusted-base scope and check evidence. | Build a provider-neutral shell recipe first; use an existing extension or security discussion only if it invites integrations. | Same Change Passport across Gemini, Codex, Claude, and other agents. |
+| [PR-Agent](https://github.com/The-PR-Agent/pr-agent) | AI-assisted pull-request review can consume deterministic facts instead of re-deriving file scope and check execution from prose. | Prototype a Change Passport input or linked job summary before approaching its integration channels. | Complementary deterministic evidence for an AI review layer. |
+| [GitHub MCP Server](https://github.com/github/github-mcp-server) | Agent workflows that create branches and pull requests need a bounded repository-verification step before publication. | Write a local composition example; raise no issue unless an actual MCP interoperability limitation is found. | Bounded MCP tools, explicit execution permission, portable JSON. |
 
 ## Priority C: security and software-supply-chain alignment
 
@@ -60,6 +63,8 @@ only when a new or existing thread asks for a solution that PatchWitness can dem
 | [Semgrep](https://github.com/semgrep/semgrep) | Semgrep can remain the semantic/static analyzer while PatchWitness records that it ran and protects its configuration. | Publish a repository check example and ask Semgrep users for practical feedback. | Orchestration evidence, protected config, SARIF coexistence. |
 | [Trivy](https://github.com/aquasecurity/trivy) | Trivy findings can be required repository checks and retained in the passport's execution evidence. | Create a Docker/CI recipe before approaching its community. | Composable checks, secrets/config scan complement. |
 | [MCP reference servers](https://github.com/modelcontextprotocol/servers) | Agent hosts need narrow tools and explicit permission boundaries around repository operations. | Share PatchWitness's stdio MCP design for review only in security/tooling discussions that invite examples. | Read/capture/impact tools, execution disabled by default. |
+| [Sigstore Cosign](https://github.com/sigstore/cosign) | PatchWitness provides an integrity hash but not signer identity; Cosign is a credible future envelope for authenticating a passport. | Publish a design experiment only after signing and verification work end to end; do not claim compatibility beforehand. | Clear integrity-versus-authenticity boundary and signed evidence roadmap. |
+| [Anchore Syft](https://github.com/anchore/syft) | SBOM generation can be a required check whose exit status and output hash travel with the code-change evidence. | Build a small CI composition and use an existing integrations venue only if the result adds value. | Dependency-change policy plus retained SBOM execution evidence. |
 
 ## Communities
 

@@ -64,7 +64,7 @@ PatchWitness does **not** claim that a passing test proves semantic correctness.
 useful facts about scope, verifier integrity, execution, and provenance so human review starts with
 evidence instead of agent-authored prose.
 
-## Quick start
+## Quick start: first real verification in five minutes
 
 PatchWitness is currently distributed from GitHub:
 
@@ -76,14 +76,39 @@ pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/down
 uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
 ```
 
-Initialize a repository and run the gate:
+Bootstrap the policy once. Pick the real check command for your repository, replace the generated
+`command = "python -m pytest"` line if needed, and commit the policy so later patches cannot rewrite
+their own rules:
+
+| Stack | Copy into `command = "..."` |
+|---|---|
+| Python | `python -m pytest` |
+| Node.js | `npm test` |
+| Go | `go test ./...` |
+| Rust | `cargo test` |
 
 ```bash
 cd your-repository
 patchwitness init
-# Edit .patchwitness.toml with your real test/lint commands, then commit it.
-patchwitness gate --base HEAD
+# Edit the one check command if the repository is not Python.
+git add .patchwitness.toml .gitignore
+git commit -m "chore: add PatchWitness policy"
 ```
+
+After an agent changes the working tree, run the first real gate against that trusted commit:
+
+```bash
+patchwitness gate \
+  --base HEAD \
+  --policy-ref HEAD \
+  --clean-room \
+  --output .patchwitness/evidence/first.json
+
+patchwitness verify .patchwitness/evidence/first.json
+```
+
+The one-time policy commit is deliberate: without a trusted base, a patch could weaken
+`.patchwitness.toml` and immediately grade itself against the weaker policy.
 
 Create a narrower contract for one task:
 
@@ -113,7 +138,20 @@ patchwitness gate \
 patchwitness report evidence.json --format sarif --output patchwitness.sarif
 ```
 
-See the ready-to-copy [GitHub Actions integration](docs/integrations/github-actions.md).
+Put the same trusted-base gate on every pull request:
+
+```yaml
+- uses: pangxueyuan2-creator/patchwitness@v0.1.0
+  with:
+    base: ${{ github.event.pull_request.base.sha }}
+    policy-ref: ${{ github.event.pull_request.base.sha }}
+    contract: .patchwitness.toml
+    clean-room: "true"
+```
+
+The complete ready-to-copy workflow, permissions, and dependency-setup notes are in the
+[GitHub Actions integration](docs/integrations/github-actions.md). More runnable repository shapes
+are indexed under [`examples/`](examples/README.md).
 
 ## Why it is different
 
@@ -233,7 +271,8 @@ high-risk repositories.
 
 `v0.1.0` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
-[ROADMAP.md](ROADMAP.md) for the route to v1.0.
+[ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
+estimates in [OSS_READINESS.md](OSS_READINESS.md).
 
 ## FAQ
 

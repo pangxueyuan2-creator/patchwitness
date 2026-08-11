@@ -4,6 +4,9 @@
 
 **NOT READY TO APPLY**
 
+The live, source-linked scorecard is maintained in [`../OSS_READINESS.md`](../OSS_READINESS.md).
+This page explains the re-evaluation policy; it must not be used as a substitute for current data.
+
 As of the initial v0.1.0 release, PatchWitness has no verified public stars, forks, external
 contributors, package downloads, dependents, external mentions, issue/PR community, or production
 adoption. Creating or implying those signals would be dishonest.
@@ -41,4 +44,3 @@ There is no official numeric threshold, so these are project-maintainer criteria
 
 When these conditions are met, refresh all figures live, cite their sources, and draft the 500-character
 application answers. Until then, improve the project rather than optimize for an application.
-
