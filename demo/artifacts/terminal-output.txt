@@ -1,0 +1,30 @@
+PatchWitness real risk demo
+===========================
+
+[1/4] Coding agent patch
+  M src/pricing.py                 adds discount()
+  M tests/test_pricing.py          adds a passing test
+  M .github/workflows/ci.yml       makes CI failures non-blocking
+
+[2/4] Repository tests
+----------------------------------------------------------------------
+Ran 2 tests in 0.000s
+
+OK
+
+[3/4] Independent PatchWitness gate
+PatchWitness FAIL
+  3 files | 10 lines | 1/1 checks
+  Risk: LOW (15/100) | 1 direct dependents
+  ERROR PW002 [.github/workflows/ci.yml]: path is outside the approved scope
+  ERROR PW003 [.github/workflows/ci.yml]: protected verification or control-plane file changed
+  Evidence: $CHANGE_PASSPORT
+  SHA-256:  59d17e3eaa162fea1b1517105b0bb758ec6cafcc5e229466ebfa6541cf0a62fb
+
+[4/4] Offline passport verification
+evidence integrity verified
+  ok: True
+  status: fail
+  payload_sha256: 59d17e3eaa162fea1b1517105b0bb758ec6cafcc5e229466ebfa6541cf0a62fb
+
+Result: tests passed, but the risky control-plane change was blocked.

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">PatchWitness real risk demo</title>
+  <desc id="desc">Tests pass, but PatchWitness blocks a protected CI workflow change and verifies a Change Passport.</desc>
+  <defs>
+    <linearGradient id="demo-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="1" stop-color="#10283c"/>
+    </linearGradient>
+    <filter id="demo-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="720" rx="26" fill="url(#demo-bg)"/>
+  <text x="70" y="76" fill="#f4fbff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="700">A test-passing patch can still weaken its verifier.</text>
+  <text x="70" y="116" fill="#91aabc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20">Real output from <tspan fill="#55e6c1">python demo/run_demo.py</tspan></text>
+
+  <g transform="translate(70 154)" filter="url(#demo-shadow)">
+    <rect width="1140" height="500" rx="16" fill="#050b12" stroke="#2b4557"/>
+    <rect width="1140" height="48" rx="16" fill="#101c27"/>
+    <path d="M0 48h1140" stroke="#2b4557"/>
+    <circle cx="28" cy="24" r="6" fill="#ff6b6b"/>
+    <circle cx="50" cy="24" r="6" fill="#ffd166"/>
+    <circle cx="72" cy="24" r="6" fill="#55e6c1"/>
+    <text x="570" y="30" text-anchor="middle" fill="#8aa4b5" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14">patchwitness — agent-risk-demo</text>
+
+    <g transform="translate(34 84)" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="18">
+      <text y="0" fill="#7892a5">[1/4] Coding agent patch</text>
+      <text y="31" fill="#d7e6ef">M  src/pricing.py</text><text x="350" y="31" fill="#91aabc">adds discount()</text>
+      <text y="60" fill="#d7e6ef">M  tests/test_pricing.py</text><text x="350" y="60" fill="#55e6c1">adds a passing test</text>
+      <text y="89" fill="#d7e6ef">M  .github/workflows/ci.yml</text><text x="350" y="89" fill="#ffbd69">makes CI failures non-blocking</text>
+
+      <text y="137" fill="#7892a5">[2/4] Repository tests</text>
+      <text y="168" fill="#55e6c1" font-weight="700">PASS</text><text x="78" y="168" fill="#d7e6ef">Ran 2 tests — OK</text>
+
+      <text y="216" fill="#7892a5">[3/4] Independent PatchWitness gate</text>
+      <text y="247" fill="#ff6b6b" font-weight="700">FAIL</text><text x="78" y="247" fill="#d7e6ef">3 files | 10 lines | 1/1 checks</text>
+      <text y="278" fill="#ffbd69">PW002</text><text x="88" y="278" fill="#d7e6ef">workflow is outside the approved task scope</text>
+      <text y="309" fill="#ff6b6b">PW003</text><text x="88" y="309" fill="#d7e6ef">protected verification/control-plane file changed</text>
+
+      <text y="357" fill="#7892a5">[4/4] Change Passport</text>
+      <text y="388" fill="#55e6c1" font-weight="700">VERIFIED</text><text x="115" y="388" fill="#d7e6ef">SHA-256 59d17e3e…a62fb</text>
+    </g>
+  </g>
+  <g transform="translate(912 674)" font-family="Inter,Segoe UI,Arial,sans-serif">
+    <text x="0" y="0" fill="#91aabc" font-size="16">Tests passed.</text>
+    <text x="101" y="0" fill="#55e6c1" font-size="16" font-weight="700">Trust gate held.</text>
+  </g>
+</svg>

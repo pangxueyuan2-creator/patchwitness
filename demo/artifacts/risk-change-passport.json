@@ -1,0 +1,146 @@
+{
+  "captured_at": "2026-08-11T08:10:20Z",
+  "changes": [
+    {
+      "additions": 1,
+      "after_sha256": "3a147c6ec295e6c0876486aa77eabbee98932a99cd89d382feb4ec22994b7885",
+      "before_sha256": "36d6eb4680d1b1a0c88e0ab641c8c315819311fd1900155bc7929e4cacb4f00a",
+      "binary": false,
+      "deletions": 0,
+      "path": ".github/workflows/ci.yml",
+      "status": "M"
+    },
+    {
+      "additions": 4,
+      "after_sha256": "8f0d07a306cdc7d25866a37880e5cebf278c20a711f716f57b5917f62739a585",
+      "before_sha256": "99ecabd49787c9187eb0cc7712c0473217ce6dd8025e42698868826acbd9a01a",
+      "binary": false,
+      "deletions": 0,
+      "path": "src/pricing.py",
+      "status": "M"
+    },
+    {
+      "additions": 4,
+      "after_sha256": "ec290de7b5e06c61cf06138a28bf02746adf04f52a717c585c9d83e3ac8c08e2",
+      "before_sha256": "57f40d2df20d3ba8341358e76c5507e261e08da1d79fe781caebb2847804cb93",
+      "binary": false,
+      "deletions": 1,
+      "path": "tests/test_pricing.py",
+      "status": "M"
+    }
+  ],
+  "checks": [
+    {
+      "command": "python -m unittest discover -s tests -q",
+      "duration_ms": 154,
+      "exit_code": 0,
+      "id": "tests",
+      "output_excerpt": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+      "output_sha256": "2a50b4749107e50e3993c9a59df48e8d8cebd81e26a286e83bb83d7fe81b2d90",
+      "passed": true,
+      "required": true,
+      "timed_out": false
+    }
+  ],
+  "contract": {
+    "allow_binary": false,
+    "allow_dependency_changes": false,
+    "allowed_paths": [
+      "src/**",
+      "tests/**"
+    ],
+    "checks": [
+      {
+        "command": "python -m unittest discover -s tests -q",
+        "id": "tests",
+        "required": true,
+        "timeout_seconds": 60
+      }
+    ],
+    "denied_paths": [
+      ".git/**",
+      ".patchwitness/evidence/**"
+    ],
+    "goal": "Allow the pricing feature without weakening verification",
+    "id": "agent-risk-demo",
+    "max_files": 10,
+    "max_lines": 200,
+    "protected_paths": [
+      ".github/workflows/**",
+      ".patchwitness.toml"
+    ],
+    "require_tests": true,
+    "source": "git:8f7bab2f581e3db3f652372477d75995af8a09ca:.patchwitness.toml"
+  },
+  "extensions": {
+    "analyzers": {},
+    "environment": {
+      "architecture": "AMD64",
+      "os": "Windows",
+      "python": "3.14.5"
+    },
+    "impact": {
+      "affected_tests": [
+        "tests/test_pricing.py"
+      ],
+      "cache_hit": false,
+      "changed_source_files": [
+        "src/pricing.py",
+        "tests/test_pricing.py"
+      ],
+      "direct_dependents": [
+        "tests/test_pricing.py"
+      ],
+      "edges_indexed": 1,
+      "files_indexed": 2,
+      "max_depth": 6,
+      "risk_level": "low",
+      "risk_score": 15,
+      "transitive_dependents": [],
+      "version": 1
+    },
+    "verification": {
+      "clean_room": true,
+      "git_hooks_disabled": true
+    }
+  },
+  "findings": [
+    {
+      "line": null,
+      "message": "path is outside the approved scope",
+      "path": ".github/workflows/ci.yml",
+      "rule_id": "PW002",
+      "severity": "error"
+    },
+    {
+      "line": null,
+      "message": "protected verification or control-plane file changed",
+      "path": ".github/workflows/ci.yml",
+      "rule_id": "PW003",
+      "severity": "error"
+    }
+  ],
+  "payload_sha256": "59d17e3eaa162fea1b1517105b0bb758ec6cafcc5e229466ebfa6541cf0a62fb",
+  "repository": {
+    "base_revision": "8f7bab2f581e3db3f652372477d75995af8a09ca",
+    "branch": "main",
+    "dirty": true,
+    "head_revision": "8f7bab2f581e3db3f652372477d75995af8a09ca",
+    "remote": null,
+    "root_name": "patchwitness-agent-risk-3oy2uea0"
+  },
+  "schema_version": "patchwitness.dev/evidence/v1",
+  "summary": {
+    "checks_passed": 1,
+    "checks_total": 1,
+    "errors": 2,
+    "files_changed": 3,
+    "lines_changed": 10,
+    "status": "fail",
+    "warnings": 0
+  },
+  "tool": {
+    "name": "patchwitness",
+    "version": "0.1.0"
+  }
+}

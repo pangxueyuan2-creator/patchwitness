@@ -9,6 +9,13 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 - Added a measured acknowledgement of OpenAI, ChatGPT, and Codex to the project and launch
   documentation, while retaining an explicit no-affiliation disclaimer.
+- Reworked the README conversion path around a real one-minute risk demo, simpler try-first flow,
+  visual terminal output, and a concise FAQ.
+
+### Added
+
+- Reproducible coding-agent risk demo with a committed terminal transcript and Change Passport.
+- 1280x640 social-preview artwork and an end-to-end demo integration test.
 
 ### Planned
 

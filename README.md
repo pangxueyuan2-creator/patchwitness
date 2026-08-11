@@ -10,6 +10,7 @@
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/releases"><img alt="Release" src="https://img.shields.io/github/v/release/pangxueyuan2-creator/patchwitness"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
+  <a href="#60-second-demo-tests-pass-the-gate-fails"><img alt="Real demo" src="https://img.shields.io/badge/demo-60_seconds-55e6c1"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.11--3.14-3776AB">
   <img alt="Runtime dependencies" src="https://img.shields.io/badge/runtime_dependencies-0-2ea44f">
 </p>
@@ -18,24 +19,35 @@ AI coding agents can write a patch in minutes. Reviewers still have to reconstru
 asked to do, whether it stayed in scope, whether it changed its own verifier, and whether the claimed
 tests actually ran.
 
-That acceleration is a genuine advance. [OpenAI](https://developers.openai.com/) and
-[ChatGPT](https://learn.chatgpt.com/docs) helped make AI-assisted problem solving broadly
-accessible, while Codex has raised expectations for what a coding agent can accomplish across a real
-repository. PatchWitness is built in that optimistic spirit: increasingly capable agents deserve
-verification infrastructure that is just as capable.
-
 **PatchWitness turns every change into a verifiable Change Passport.** It derives facts from Git,
 loads policy from a trusted revision, executes repository-owned checks, computes dependency blast
 radius, and seals the result into an offline-verifiable evidence pack. No LLM judges its own work.
 
-```console
-$ patchwitness gate --base origin/main --policy-ref origin/main --clean-room
-PatchWitness PASS
-  4 files | 126 lines | 3/3 checks
-  Risk: MEDIUM (31/100) | 2 direct dependents
-  Evidence: .patchwitness/evidence/20260811T080000Z.json
-  SHA-256:  9e3b...1a7c
+It is not another AI reviewer. It is a local-first, agent-neutral trust gate for scope, verifier
+integrity, real check execution, secrets, dependency impact, and portable evidence.
+
+## 60-second demo: tests pass, the gate fails
+
+<p align="center">
+  <img src="docs/assets/demo-terminal.svg" alt="Real PatchWitness demo: tests pass but a protected CI workflow change is blocked" width="100%" />
+</p>
+
+The simulated coding agent adds a correct feature and a passing test, but also makes GitHub Actions
+failures non-blocking. The tests pass. PatchWitness loads policy from the trusted base commit, runs
+the same tests, blocks the workflow change with `PW002` and `PW003`, and emits a Change Passport that
+verifies offline.
+
+Try the entire scenario with Git and Python 3.11+—no package installation required:
+
+```bash
+git clone https://github.com/pangxueyuan2-creator/patchwitness.git
+cd patchwitness
+python demo/run_demo.py
 ```
+
+See the [five-minute reproduction](demo/README.md), the committed
+[real terminal transcript](demo/artifacts/terminal-output.txt), and the
+[generated Change Passport](demo/artifacts/risk-change-passport.json).
 
 ## The trust boundary coding agents are missing
 
@@ -58,10 +70,10 @@ PatchWitness is currently distributed from GitHub:
 
 ```bash
 # pipx
-pipx install "git+https://github.com/pangxueyuan2-creator/patchwitness.git@v0.1.0"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
 
 # or uv
-uv tool install "git+https://github.com/pangxueyuan2-creator/patchwitness.git@v0.1.0"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
 ```
 
 Initialize a repository and run the gate:
@@ -222,6 +234,34 @@ high-risk repositories.
 `v0.1.0` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
 [ROADMAP.md](ROADMAP.md) for the route to v1.0.
+
+## FAQ
+
+### Is this another LLM code reviewer?
+
+No. PatchWitness does not ask a model to judge another model. It derives narrower evidence from Git
+objects, trusted policy, process exit codes, hashes, and dependency structure. Use it alongside human
+review, CodeQL, Semgrep, or another semantic/security reviewer.
+
+### Does a passing Change Passport prove the code is correct?
+
+No. It proves the recorded scope, policy, check execution, impact, and integrity claims. Tests can be
+incomplete, SHA-256 does not identify the producer, and clean-room worktrees are not a kernel sandbox.
+
+### Which coding agents does it support?
+
+Any of them. Codex, Claude Code, Copilot, Cline, Cursor, Aider, custom agents, and human-authored
+patches all produce the same evidence format because PatchWitness operates on the repository change.
+
+### Does source code leave the machine?
+
+Not through PatchWitness core. Capture, policy evaluation, checks, reports, and verification run
+locally. Integrations or plugins may have their own trust boundaries, so review them before use.
+
+### Can CI or another platform consume the result?
+
+Yes. Use canonical JSON, Markdown, SARIF, GitHub annotations, the Python SDK, MCP tools, or analyzer
+entry points. The evidence schema is versioned under `schemas/`.
 
 ## Contributing
 

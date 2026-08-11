@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">PatchWitness - proof before merge</title>
+  <desc id="desc">Independent evidence and policy gates for AI-generated code changes.</desc>
+  <defs>
+    <linearGradient id="social-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06101d"/>
+      <stop offset=".62" stop-color="#0b1f32"/>
+      <stop offset="1" stop-color="#123149"/>
+    </linearGradient>
+    <linearGradient id="social-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#55e6c1"/>
+      <stop offset="1" stop-color="#39a7ff"/>
+    </linearGradient>
+    <pattern id="social-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#9ccfe1" stroke-opacity=".055"/>
+    </pattern>
+    <filter id="social-glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1280" height="640" fill="url(#social-bg)"/>
+  <rect width="1280" height="640" fill="url(#social-grid)"/>
+  <circle cx="1115" cy="60" r="250" fill="#39a7ff" opacity=".07"/>
+  <circle cx="1050" cy="610" r="240" fill="#55e6c1" opacity=".055"/>
+
+  <g transform="translate(72 64)" filter="url(#social-glow)">
+    <path d="M69 0 130 26v46c0 39-25 66-61 82C33 138 8 111 8 72V26Z" fill="#0c2435" stroke="url(#social-accent)" stroke-width="5"/>
+    <path d="m40 74 20 20 40-48" fill="none" stroke="#55e6c1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g transform="translate(238 67)" font-family="Inter,Segoe UI,Arial,sans-serif">
+    <text x="0" y="62" fill="#f4fbff" font-size="64" font-weight="760" letter-spacing="-2">PatchWitness</text>
+    <text x="2" y="108" fill="#8fe7d1" font-size="24" font-weight="700" letter-spacing="2">PROOF BEFORE MERGE</text>
+  </g>
+
+  <text x="72" y="260" fill="#f4fbff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="38" font-weight="700">Independent evidence for AI-generated code changes.</text>
+  <text x="72" y="306" fill="#a9bfcd" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22">Trusted base policy · Real checks · Dependency impact · Portable Change Passports</text>
+
+  <g transform="translate(72 357)" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="18">
+    <rect width="1136" height="196" rx="16" fill="#050b12" stroke="#2b4557"/>
+    <rect width="1136" height="42" rx="16" fill="#101c27"/>
+    <circle cx="26" cy="21" r="5" fill="#ff6b6b"/><circle cx="46" cy="21" r="5" fill="#ffd166"/><circle cx="66" cy="21" r="5" fill="#55e6c1"/>
+    <text x="28" y="82" fill="#55e6c1">Repository tests: PASS</text>
+    <text x="28" y="116" fill="#ff6b6b">PatchWitness: FAIL</text>
+    <text x="258" y="116" fill="#d7e6ef">PW003 — protected CI workflow changed</text>
+    <text x="28" y="156" fill="#8aa4b5">Change Passport:</text><text x="215" y="156" fill="#55e6c1">VERIFIED · SHA-256 59d17e3e…a62fb</text>
+  </g>
+  <text x="72" y="602" fill="#91aabc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17">Local-first · Agent-neutral · Apache-2.0 · No hosted source upload</text>
+</svg>
