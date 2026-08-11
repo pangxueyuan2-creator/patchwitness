@@ -26,6 +26,10 @@ radius, and seals the result into an offline-verifiable evidence pack. No LLM ju
 It is not another AI reviewer. It is a local-first, agent-neutral trust gate for scope, verifier
 integrity, real check execution, secrets, dependency impact, and portable evidence.
 
+For the first run, `patchwitness scan` detects the repository stack and test runner, chooses whether
+to inspect working-tree changes or the latest commit, and writes a Change Passport—without requiring
+a configuration file.
+
 ## 60-second demo: tests pass, the gate fails
 
 <p align="center">
@@ -64,38 +68,69 @@ PatchWitness does **not** claim that a passing test proves semantic correctness.
 useful facts about scope, verifier integrity, execution, and provenance so human review starts with
 evidence instead of agent-authored prose.
 
-## Quick start: first real verification in five minutes
+## Quick start: first evidence in 30 seconds
 
 PatchWitness is currently distributed from GitHub:
 
 ```bash
 # pipx
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.1/patchwitness-0.1.1-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
 
 # or uv
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.1/patchwitness-0.1.1-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
 ```
 
-Bootstrap the policy once. Pick the real check command for your repository, replace the generated
-`command = "python -m pytest"` line if needed, and commit the policy so later patches cannot rewrite
-their own rules:
-
-| Stack | Copy into `command = "..."` |
-|---|---|
-| Python | `python -m pytest` |
-| Node.js | `npm test` |
-| Go | `go test ./...` |
-| Rust | `cargo test` |
+Run one command inside any existing Git repository:
 
 ```bash
 cd your-repository
+patchwitness scan
+```
+
+With uncommitted changes, `scan` compares the working tree with `HEAD`. On a clean tree it inspects
+the latest commit against `HEAD^`. Use `--base origin/main` whenever you want an explicit boundary.
+If a committed `.patchwitness.toml` exists, `scan` uses it; otherwise it creates an in-memory preview
+policy and clearly labels the evidence `auto-detected-preview`.
+
+Project detection is deterministic and local—no code execution, network request, or LLM call is
+used to choose commands:
+
+| Stack | Detected verification command |
+|---|---|
+| Python | pytest via `uv`, Poetry, Pipenv, or Python; repository `.venv` is preferred automatically |
+| Node.js | `npm`, pnpm, Yarn, or Bun `test` script |
+| Go | `go test ./...` |
+| Rust | `cargo test --workspace` |
+| .NET / Maven | `dotnet test` / `mvn test` |
+| Ruby / PHP / Make | repository-declared RSpec, Rake, Composer, or `make test` |
+
+`patchwitness doctor` shows the detected profile, missing executables, repository state, and the next
+recommended command. Use `patchwitness scan --no-checks` for structural analysis only.
+
+> [!CAUTION]
+> Detection only reads repository metadata, but detected test commands execute repository code with
+> your local user permissions. For a repository you do not trust, inspect the commands with
+> `patchwitness doctor` or begin with `patchwitness scan --no-checks`.
+
+## Persist a trusted policy in five minutes
+
+After trying the scan, generate a reviewable policy. `init` uses the same detection engine and can
+represent multiple ecosystems declared at the repository root:
+
+```bash
 patchwitness init
-# Edit the one check command if the repository is not Python.
+# Review the detected checks and path policy.
 git add .patchwitness.toml .gitignore
 git commit -m "chore: add PatchWitness policy"
 ```
 
-After an agent changes the working tree, run the first real gate against that trusted commit:
+Override detection when a repository has a custom harness:
+
+```bash
+patchwitness init --check "unit=make unit" --check "integration=make integration" --force
+```
+
+After an agent changes the working tree, enforce the policy from that trusted commit:
 
 ```bash
 patchwitness gate \
@@ -141,7 +176,7 @@ patchwitness report evidence.json --format sarif --output patchwitness.sarif
 Put the same trusted-base gate on every pull request:
 
 ```yaml
-- uses: pangxueyuan2-creator/patchwitness@v0.1.1
+- uses: pangxueyuan2-creator/patchwitness@v0.2.0
   with:
     base: ${{ github.event.pull_request.base.sha }}
     policy-ref: ${{ github.event.pull_request.base.sha }}
@@ -204,7 +239,8 @@ The detailed data flow, extension boundaries, and trust assumptions are in
 ## Commands
 
 ```text
-patchwitness init                         Create a starter repository contract
+patchwitness scan                         Smart zero-config first verification
+patchwitness init                         Detect the project and create a starter contract
 patchwitness contract new ...             Create a task-scoped contract
 patchwitness gate ...                     Capture evidence and fail closed
 patchwitness capture ...                  Capture without enforcing the result
@@ -269,7 +305,7 @@ high-risk repositories.
 
 ## Project status
 
-`v0.1.1` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
+`v0.2.0` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
 [ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
 estimates in [OSS_READINESS.md](OSS_READINESS.md).

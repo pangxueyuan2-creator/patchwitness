@@ -9,6 +9,39 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 - Community feedback from the first public releases.
 
+## [0.2.0] - 2026-08-11
+
+### Added
+
+- Added `patchwitness scan`, a zero-configuration path that selects the working tree or latest commit,
+  detects repository-owned checks, runs them, and writes a real Change Passport.
+- Added deterministic local project detection for Python, Node.js, Go, Rust, .NET, Maven, Ruby,
+  PHP, and Make-based projects without network requests or LLM inference.
+- Added `init --check`, `init --no-detect`, and richer machine-readable detection output.
+
+### Changed
+
+- `patchwitness init` now generates checks from detected repository conventions instead of assuming
+  every project uses pytest; when no safe check is found, it creates an honest structural-only policy.
+- `patchwitness doctor` now reports ecosystems, detected commands, missing executables, contract state,
+  and a recommended next command.
+- Check execution prefers a repository-local `.venv`, making isolated `pipx` and `uv tool`
+  installations work naturally with project test dependencies.
+- Human-readable results now label dependency severity as `Impact` and explain that high impact raises
+  review priority rather than automatically failing policy.
+
+### Security
+
+- Smart detection remains read-only and does not execute project code to select commands. Detected
+  checks do execute repository code; the CLI and documentation direct users of untrusted repositories
+  to inspect with `doctor` or run `scan --no-checks` first.
+
+### Compatibility
+
+- Evidence schema remains `patchwitness.dev/evidence/v1`.
+- No runtime dependencies were added, and existing contracts, commands, SDK calls, MCP tools, and
+  reports remain compatible.
+
 ## [0.1.1] - 2026-08-11
 
 ### Security
@@ -53,6 +86,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Typed Python SDK, analyzer entry points, and stdio MCP tools.
 - Cross-platform CLI, Docker image, composite GitHub Action, CI, tests, and real benchmark harness.
 
-[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pangxueyuan2-creator/patchwitness/releases/tag/v0.1.0

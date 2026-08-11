@@ -38,6 +38,7 @@ def _run_one(root: Path, spec: CheckSpec) -> CheckResult:
     exit_code: int | None
     output: str
     env = os.environ.copy()
+    _prefer_project_virtualenv(root, env)
     env["PATCHWITNESS_CHECK_ID"] = spec.id
     env["PATCHWITNESS_REPOSITORY_ROOT"] = str(root)
     env["NO_COLOR"] = "1"
@@ -90,3 +91,13 @@ def _run_one(root: Path, spec: CheckSpec) -> CheckResult:
         output_sha256=hashlib.sha256(sanitized.encode("utf-8")).hexdigest(),
         output_excerpt=excerpt(sanitized),
     )
+
+
+def _prefer_project_virtualenv(root: Path, env: dict[str, str]) -> None:
+    virtualenv = root / ".venv"
+    executables = virtualenv / ("Scripts" if os.name == "nt" else "bin")
+    if not executables.is_dir():
+        return
+    current_path = env.get("PATH", "")
+    env["PATH"] = str(executables) + (os.pathsep + current_path if current_path else "")
+    env["VIRTUAL_ENV"] = str(virtualenv)

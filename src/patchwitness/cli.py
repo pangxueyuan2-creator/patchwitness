@@ -7,6 +7,7 @@ import json
 import shutil
 import sys
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from patchwitness.config import (
     load_contract,
     load_contract_bytes,
 )
+from patchwitness.detection import ProjectProfile, detect_project
 from patchwitness.evidence import (
     EvidenceError,
     capture_evidence,
@@ -31,12 +33,13 @@ from patchwitness.git import (
     GitError,
     collect_changes,
     find_root,
+    is_dirty,
     load_file_at_revision,
     resolve_revision,
 )
 from patchwitness.impact import analyze_impact
 from patchwitness.mcp import MCPServer
-from patchwitness.models import EvidencePack, GateStatus
+from patchwitness.models import CheckSpec, Contract, EvidencePack, GateStatus
 from patchwitness.reporters import (
     explain_rule,
     render_github_annotations,
@@ -57,6 +60,33 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_parser = subparsers.add_parser("init", help="create a safe starter contract")
     init_parser.add_argument("--force", action="store_true", help="replace an existing contract")
+    init_parser.add_argument(
+        "--check", action="append", default=[], help="override detection with ID=COMMAND"
+    )
+    init_parser.add_argument(
+        "--no-detect", action="store_true", help="create a structural-only contract"
+    )
+
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="run a smart first verification with zero configuration",
+        description=(
+            "Detect the repository stack, run repository-owned checks, and write a Change "
+            "Passport. Checks execute repository code; use doctor or --no-checks before "
+            "scanning an untrusted repository."
+        ),
+    )
+    scan_parser.add_argument(
+        "--base",
+        help="trusted base revision; defaults to HEAD for local changes or HEAD^ for a clean tree",
+    )
+    scan_parser.add_argument("--output", help="evidence JSON path")
+    scan_parser.add_argument("--no-checks", action="store_true", help="inspect structure only")
+    scan_parser.add_argument("--serial", action="store_true", help="run checks sequentially")
+    scan_parser.add_argument("--max-workers", type=int, default=4)
+    scan_parser.add_argument(
+        "--clean-room", action="store_true", help="run checks in a disposable Git worktree"
+    )
 
     for name, help_text in (
         ("capture", "capture a Change Passport without enforcing its result"),
@@ -143,6 +173,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "init":
             return _init(args)
+        if args.command == "scan":
+            return _scan(args)
         if args.command in {"capture", "gate"}:
             return _capture(args, enforce=args.command == "gate")
         if args.command == "verify":
@@ -171,11 +203,98 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _init(args: argparse.Namespace) -> int:
     root = find_root()
-    target = initialize_project(root, force=bool(args.force))
-    return _emit(
-        {"ok": True, "contract": str(target), "message": "PatchWitness initialized"},
-        json_output=bool(args.json),
+    profile = detect_project(root)
+    overrides = _parse_check_values(args.check)
+    if overrides:
+        checks = overrides
+        detection_mode = "manual"
+    elif args.no_detect:
+        checks = ()
+        detection_mode = "disabled"
+    else:
+        checks = tuple((check.id, check.command) for check in profile.checks)
+        detection_mode = "automatic"
+    target = initialize_project(root, force=bool(args.force), checks=checks)
+    payload: dict[str, object] = {
+        "ok": True,
+        "contract": str(target),
+        "detection": detection_mode,
+        "ecosystems": list(profile.ecosystems),
+        "checks": [{"id": check_id, "command": command} for check_id, command in checks],
+        "next": "review and commit .patchwitness.toml, then run patchwitness scan",
+    }
+    if args.json:
+        print(json.dumps(payload, sort_keys=True))
+    else:
+        print("PatchWitness initialized")
+        print(f"  Contract: {target}")
+        print(f"  Detected: {_profile_label(profile)}")
+        if checks:
+            for check_id, command in checks:
+                print(f"  Check:    {check_id} -> {command}")
+        else:
+            print("  Check:    none detected; add [[checks]] before enforcing this contract")
+        print("  Next:     review and commit .patchwitness.toml, then run patchwitness scan")
+    return 0
+
+
+def _scan(args: argparse.Namespace) -> int:
+    root = find_root()
+    profile = detect_project(root)
+    contract_path = root / ".patchwitness.toml"
+    if contract_path.is_file():
+        contract = load_contract(contract_path)
+        contract_source = "working-tree"
+        mode = "committed contract" if not is_dirty(root) else "working-tree contract"
+    else:
+        contract = _preview_contract(profile)
+        contract_source = "auto-detected-preview"
+        mode = "auto-detected preview"
+    if args.no_checks:
+        contract = replace(contract, checks=(), require_tests=False)
+    base, base_reason = _select_scan_base(root, args.base)
+    pack = capture_evidence(
+        root,
+        contract,
+        base=base,
+        execute_checks=not args.no_checks,
+        parallel_checks=not args.serial,
+        max_workers=max(1, args.max_workers),
+        contract_source=contract_source,
+        clean_room_checks=bool(args.clean_room),
     )
+    output = Path(args.output) if args.output else _default_output(root)
+    if not output.is_absolute():
+        output = root / output
+    write_evidence(pack, output)
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "ok": pack.status == GateStatus.PASS,
+                    "mode": mode,
+                    "base": pack.repository["base_revision"],
+                    "base_reason": base_reason,
+                    "ecosystems": list(profile.ecosystems),
+                    "evidence": str(output),
+                    **pack.summary,
+                },
+                sort_keys=True,
+            )
+        )
+    else:
+        print("PatchWitness smart scan")
+        print(f"  Mode:     {mode}")
+        print(f"  Detected: {_profile_label(profile)}")
+        print(f"  Base:     {base} ({base_reason})")
+        for check in contract.checks:
+            print(f"  Check:    {check.id} -> {check.command}")
+        if not contract.checks:
+            print("  Check:    structural analysis only; no safe test command was detected")
+        _print_pack(pack, output=output, json_output=False)
+        if contract_source == "auto-detected-preview":
+            print("  Next:     run 'patchwitness init', review the contract, and commit it")
+    return 0 if pack.status == GateStatus.PASS else 1
 
 
 def _capture(args: argparse.Namespace, *, enforce: bool) -> int:
@@ -241,21 +360,53 @@ def _inspect(args: argparse.Namespace) -> int:
 
 
 def _doctor(args: argparse.Namespace) -> int:
+    profile = ProjectProfile((), (), ())
+    tool_status: dict[str, bool] = {}
     diagnostics: dict[str, object] = {
         "python": sys.version.split()[0],
         "git": shutil.which("git"),
         "repository": None,
         "contract": False,
+        "ecosystems": [],
+        "detected_checks": [],
+        "check_tools": {},
     }
     ok = diagnostics["git"] is not None
     try:
         root = find_root()
+        profile = detect_project(root)
         diagnostics["repository"] = str(root)
         diagnostics["contract"] = (root / ".patchwitness.toml").exists()
+        diagnostics["ecosystems"] = list(profile.ecosystems)
+        diagnostics["detected_checks"] = [check.to_dict() for check in profile.checks]
+        tool_status = {
+            check.executable: (
+                True if check.executable == "python" else shutil.which(check.executable) is not None
+            )
+            for check in profile.checks
+        }
+        diagnostics["check_tools"] = tool_status
+        ok = ok and all(tool_status.values())
     except GitError:
         ok = False
     diagnostics["ok"] = ok
-    _emit(diagnostics, json_output=bool(args.json))
+    diagnostics["next"] = (
+        "patchwitness scan"
+        if diagnostics["contract"]
+        else "patchwitness scan, then patchwitness init to persist the policy"
+    )
+    if args.json:
+        print(json.dumps(diagnostics, sort_keys=True))
+    else:
+        print(f"PatchWitness doctor: {'READY' if ok else 'NEEDS ATTENTION'}")
+        print(f"  Python:   {diagnostics['python']}")
+        print(f"  Git:      {'found' if diagnostics['git'] else 'missing'}")
+        print(f"  Repo:     {diagnostics['repository'] or 'not found'}")
+        print(f"  Contract: {'found' if diagnostics['contract'] else 'not initialized'}")
+        print(f"  Detected: {_profile_label(profile)}")
+        for executable, available in tool_status.items():
+            print(f"  Tool:     {executable} -> {'found' if available else 'missing'}")
+        print(f"  Next:     {diagnostics['next']}")
     return 0 if ok else 1
 
 
@@ -283,14 +434,7 @@ def _impact(args: argparse.Namespace) -> int:
 def _contract(args: argparse.Namespace) -> int:
     if args.contract_command != "new":
         raise ConfigError(f"unknown contract command: {args.contract_command}")
-    checks: list[tuple[str, str]] = []
-    for value in args.check:
-        if "=" not in value:
-            raise ConfigError("--check must use ID=COMMAND")
-        check_id, command = value.split("=", 1)
-        if not check_id.strip() or not command.strip():
-            raise ConfigError("--check must use non-empty ID=COMMAND")
-        checks.append((check_id.strip(), command.strip()))
+    checks = _parse_check_values(args.check)
     target = create_task_contract(
         find_root(),
         args.id,
@@ -366,6 +510,48 @@ def _benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def _preview_contract(profile: ProjectProfile) -> Contract:
+    checks = tuple(
+        CheckSpec(check.id, check.command, required=True, timeout_seconds=900)
+        for check in profile.checks
+    )
+    return Contract(
+        id="smart-scan",
+        goal="Preview the current change with an auto-detected verification profile",
+        require_tests=bool(checks),
+        checks=checks,
+    )
+
+
+def _select_scan_base(root: Path, requested: str | None) -> tuple[str, str]:
+    if requested:
+        resolve_revision(root, requested)
+        return requested, "explicit --base"
+    if is_dirty(root):
+        return "HEAD", "uncommitted working-tree changes"
+    try:
+        resolve_revision(root, "HEAD^")
+    except GitError:
+        return "HEAD", "initial commit; no parent is available"
+    return "HEAD^", "clean tree; inspecting the latest commit"
+
+
+def _parse_check_values(values: Sequence[str]) -> tuple[tuple[str, str], ...]:
+    checks: list[tuple[str, str]] = []
+    for value in values:
+        if "=" not in value:
+            raise ConfigError("--check must use ID=COMMAND")
+        check_id, command = value.split("=", 1)
+        if not check_id.strip() or not command.strip():
+            raise ConfigError("--check must use non-empty ID=COMMAND")
+        checks.append((check_id.strip(), command.strip()))
+    return tuple(checks)
+
+
+def _profile_label(profile: ProjectProfile) -> str:
+    return ", ".join(profile.ecosystems) if profile.ecosystems else "unknown (structural only)"
+
+
 def _default_output(root: Path) -> Path:
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return root / ".patchwitness" / "evidence" / f"{stamp}.json"
@@ -388,11 +574,14 @@ def _print_pack(pack: EvidencePack, *, output: Path, json_output: bool) -> None:
     )
     impact = dict(pack.extensions.get("impact", {}))
     if impact:
+        risk_level = str(impact.get("risk_level", "unknown")).upper()
         print(
-            f"  Risk: {str(impact.get('risk_level', 'unknown')).upper()} "
+            f"  Impact: {risk_level} "
             f"({impact.get('risk_score', 'n/a')}/100) | "
             f"{len(impact.get('direct_dependents', []))} direct dependents"
         )
+        if pack.status == GateStatus.PASS and risk_level in {"HIGH", "CRITICAL"}:
+            print("  Review: high impact raises review priority; it is not itself a policy failure")
     for finding in pack.findings:
         location = f" [{finding['path']}]" if finding.get("path") else ""
         print(

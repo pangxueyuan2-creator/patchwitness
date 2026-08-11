@@ -24,7 +24,7 @@ jobs:
       # Adapt this step so every command in .patchwitness.toml is available.
       - name: Install project test dependencies
         run: python -m pip install -e ".[test]"
-      - uses: pangxueyuan2-creator/patchwitness@v0.1.1
+      - uses: pangxueyuan2-creator/patchwitness@v0.2.0
         with:
           base: ${{ github.event.pull_request.base.sha }}
           policy-ref: ${{ github.event.pull_request.base.sha }}

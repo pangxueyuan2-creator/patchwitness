@@ -8,6 +8,7 @@ import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 
+from patchwitness.detection import detect_project
 from patchwitness.models import Contract
 
 DEFAULT_CONFIG = """\
@@ -75,11 +76,21 @@ def _validate(contract: Contract, source: str) -> None:
         seen.add(check.id)
 
 
-def initialize_project(root: Path, *, force: bool = False) -> Path:
+def initialize_project(
+    root: Path,
+    *,
+    force: bool = False,
+    checks: Iterable[tuple[str, str]] | None = None,
+) -> Path:
     target = root / ".patchwitness.toml"
     if target.exists() and not force:
         raise ConfigError(f"{target} already exists; use --force to replace it")
-    target.write_text(DEFAULT_CONFIG, encoding="utf-8", newline="\n")
+    check_specs = (
+        tuple(checks)
+        if checks is not None
+        else tuple((check.id, check.command) for check in detect_project(root).checks)
+    )
+    target.write_text(render_starter_config(check_specs), encoding="utf-8", newline="\n")
     evidence = root / ".patchwitness" / "evidence"
     evidence.mkdir(parents=True, exist_ok=True)
     gitignore = root / ".gitignore"
@@ -90,6 +101,41 @@ def initialize_project(root: Path, *, force: bool = False) -> Path:
         with gitignore.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(f"{prefix}{marker}\n")
     return target
+
+
+def render_starter_config(checks: Iterable[tuple[str, str]]) -> str:
+    check_specs = tuple(checks)
+    lines = [
+        "version = 1",
+        'id = "default"',
+        'goal = "Keep AI-generated changes inside an explicit, reviewable boundary"',
+        "",
+        "[policy]",
+        'allowed_paths = ["**"]',
+        'denied_paths = [".git/**", ".patchwitness/evidence/**"]',
+        "protected_paths = [",
+        '  ".github/workflows/**",',
+        '  ".patchwitness.toml",',
+        '  ".patchwitness/contracts/**",',
+        "]",
+        "max_files = 50",
+        "max_lines = 2000",
+        "allow_binary = false",
+        "allow_dependency_changes = false",
+        f"require_tests = {'true' if check_specs else 'false'}",
+    ]
+    for check_id, command in check_specs:
+        lines.extend(
+            [
+                "",
+                "[[checks]]",
+                f"id = {_toml_string(check_id)}",
+                f"command = {_toml_string(command)}",
+                "required = true",
+                "timeout_seconds = 900",
+            ]
+        )
+    return "\n".join(lines) + "\n"
 
 
 def create_task_contract(

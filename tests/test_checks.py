@@ -1,7 +1,8 @@
+import os
 import sys
 from pathlib import Path
 
-from patchwitness.checks import run_checks
+from patchwitness.checks import _prefer_project_virtualenv, run_checks
 from patchwitness.models import CheckSpec
 
 
@@ -41,3 +42,14 @@ def test_failed_and_timed_out_checks_are_explicit(tmp_path: Path) -> None:
     )[0]
     assert failed.exit_code == 7 and not failed.passed
     assert timed_out.timed_out and timed_out.exit_code is None
+
+
+def test_project_virtualenv_is_preferred_for_checks(tmp_path: Path) -> None:
+    executable_dir = tmp_path / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+    executable_dir.mkdir(parents=True)
+    env = {"PATH": "existing-path"}
+
+    _prefer_project_virtualenv(tmp_path, env)
+
+    assert env["PATH"].split(os.pathsep)[0] == str(executable_dir)
+    assert env["VIRTUAL_ENV"] == str(tmp_path / ".venv")

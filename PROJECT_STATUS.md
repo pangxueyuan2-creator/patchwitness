@@ -1,6 +1,7 @@
 # Project status
 
-**Current release:** v0.1.1 public alpha
+**Current release:** v0.2.0 public alpha
+
 **Evidence schema:** v1  
 **Maintainer status:** new project, single primary maintainer  
 **Production claim:** no broad production adoption claimed
@@ -8,6 +9,7 @@
 ## Ready now
 
 - Local and CI policy gates over Git changes.
+- Zero-configuration smart scans with deterministic local project detection.
 - Base-authoritative contracts.
 - Real check execution, clean-room worktrees, and evidence verification.
 - Python/JS/TS file dependency impact.
@@ -24,6 +26,8 @@
 - Required checks prove command execution and exit status, not semantic completeness.
 - Plugins run in-process and must be treated as trusted code.
 - No PyPI publication, hosted service, telemetry, or remote evidence store exists at launch.
+- Smart scans recognize common repository conventions; custom test harnesses still need an explicit
+  `--check` or reviewed contract.
 
 ## Release bar
 
