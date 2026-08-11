@@ -56,4 +56,3 @@ def _load_discovered() -> tuple[Analyzer, ...]:
         instance = value() if isinstance(value, type) else value
         analyzers.append(instance)
     return tuple(analyzers)
-

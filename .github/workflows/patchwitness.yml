@@ -1,0 +1,35 @@
+name: PatchWitness
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install project and quality tools
+        run: python -m pip install --disable-pip-version-check -e ".[dev]"
+      - name: Gate against authoritative base policy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set +e
+          patchwitness gate \
+            --base "$BASE_SHA" \
+            --policy-ref "$BASE_SHA" \
+            --clean-room \
+            --output .patchwitness/evidence/pr.json
+          code=$?
+          patchwitness report .patchwitness/evidence/pr.json --format markdown >> "$GITHUB_STEP_SUMMARY"
+          patchwitness report .patchwitness/evidence/pr.json --format github
+          exit $code
+

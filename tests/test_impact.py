@@ -30,9 +30,6 @@ def test_python_transitive_blast_radius_and_cache(tmp_path: Path) -> None:
 def test_javascript_relative_imports(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "core.ts").write_text("export const value = 1\n", encoding="utf-8")
-    (tmp_path / "src" / "app.ts").write_text(
-        "import { value } from './core'\n", encoding="utf-8"
-    )
+    (tmp_path / "src" / "app.ts").write_text("import { value } from './core'\n", encoding="utf-8")
     result = analyze_impact(tmp_path, [changed("src/core.ts")], use_cache=False)
     assert result["direct_dependents"] == ["src/app.ts"]
-

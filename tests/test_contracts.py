@@ -16,4 +16,3 @@ def test_creates_loadable_task_contract(tmp_path: Path) -> None:
     assert contract.id == "TASK-123"
     assert contract.allowed_paths == ("src/auth/**", "tests/auth/**")
     assert contract.checks[0].id == "tests"
-

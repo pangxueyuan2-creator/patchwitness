@@ -10,7 +10,7 @@ from pathlib import Path
 
 from patchwitness.models import Contract
 
-DEFAULT_CONFIG = '''\
+DEFAULT_CONFIG = """\
 version = 1
 id = "default"
 goal = "Keep AI-generated changes inside an explicit, reviewable boundary"
@@ -34,7 +34,7 @@ id = "tests"
 command = "python -m pytest"
 required = true
 timeout_seconds = 900
-'''
+"""
 
 
 class ConfigError(ValueError):

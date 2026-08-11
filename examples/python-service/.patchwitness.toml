@@ -1,0 +1,20 @@
+version = 1
+id = "pricing-change"
+goal = "Change pricing behavior without touching unrelated services"
+
+[policy]
+allowed_paths = ["src/pricing/**", "checks/**"]
+denied_paths = []
+protected_paths = [".github/workflows/**", ".patchwitness.toml"]
+max_files = 8
+max_lines = 300
+allow_binary = false
+allow_dependency_changes = false
+require_tests = true
+
+[[checks]]
+id = "pricing-tests"
+command = "python -m pytest checks"
+required = true
+timeout_seconds = 120
+

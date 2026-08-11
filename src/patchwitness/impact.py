@@ -28,12 +28,8 @@ IGNORED_DIRECTORIES = {
     "vendor",
 }
 
-_PY_IMPORT = re.compile(
-    r"^\s*(?:from\s+([.\w]+)\s+import\s+|import\s+([\w.]+))", re.MULTILINE
-)
-_JS_IMPORT = re.compile(
-    r"(?:from\s+|import\s*\(\s*|require\s*\(\s*)['\"]([^'\"]+)['\"]"
-)
+_PY_IMPORT = re.compile(r"^\s*(?:from\s+([.\w]+)\s+import\s+|import\s+([\w.]+))", re.MULTILINE)
+_JS_IMPORT = re.compile(r"(?:from\s+|import\s*\(\s*|require\s*\(\s*)['\"]([^'\"]+)['\"]")
 
 
 def analyze_impact(
@@ -101,13 +97,7 @@ def analyze_impact(
         + len(affected_tests),
     )
     level = (
-        "critical"
-        if score >= 75
-        else "high"
-        if score >= 50
-        else "medium"
-        if score >= 25
-        else "low"
+        "critical" if score >= 75 else "high" if score >= 50 else "medium" if score >= 25 else "low"
     )
     return {
         "version": 1,

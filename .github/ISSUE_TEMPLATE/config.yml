@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/pangxueyuan2-creator/patchwitness/security/advisories/new
+    about: Report vulnerabilities privately
+  - name: Questions and ideas
+    url: https://github.com/pangxueyuan2-creator/patchwitness/discussions
+    about: Ask usage questions or discuss designs
+

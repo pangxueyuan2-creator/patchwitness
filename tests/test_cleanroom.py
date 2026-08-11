@@ -22,4 +22,3 @@ def test_clean_room_materializes_tracked_and_untracked_changes(tmp_path: Path) -
         assert (verifier / "app.py").read_text(encoding="utf-8") == "VALUE = 2\n"
         assert (verifier / "new.py").read_text(encoding="utf-8") == "NEW = True\n"
     assert not list(tmp_path.parent.glob("patchwitness-cleanroom-*"))
-

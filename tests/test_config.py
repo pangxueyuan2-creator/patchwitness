@@ -22,4 +22,3 @@ def test_rejects_duplicate_check_ids(tmp_path: Path) -> None:
     )
     with pytest.raises(ConfigError, match="duplicate"):
         load_contract(target)
-

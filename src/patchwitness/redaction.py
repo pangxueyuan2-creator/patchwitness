@@ -27,4 +27,3 @@ def excerpt(text: str, *, limit: int = 4_000) -> str:
     head = limit * 3 // 4
     tail = limit - head
     return f"{sanitized[:head]}\n... [output truncated] ...\n{sanitized[-tail:]}"
-

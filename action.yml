@@ -1,0 +1,73 @@
+name: PatchWitness Gate
+description: Independent evidence and policy gate for AI-generated code changes
+author: PatchWitness contributors
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  base:
+    description: Immutable trusted base revision
+    required: true
+  policy-ref:
+    description: Git revision containing the authoritative contract
+    required: true
+  contract:
+    description: Repository-relative TOML contract path
+    required: false
+    default: .patchwitness.toml
+  clean-room:
+    description: Run checks in a disposable hook-disabled Git worktree
+    required: false
+    default: "true"
+  python-version:
+    description: Python version used by the action
+    required: false
+    default: "3.13"
+
+outputs:
+  evidence:
+    description: Path to the generated Change Passport
+    value: ${{ steps.gate.outputs.evidence }}
+  status:
+    description: Gate exit status (pass or fail)
+    value: ${{ steps.gate.outputs.status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install PatchWitness
+      shell: bash
+      run: python -m pip install --disable-pip-version-check "${{ github.action_path }}"
+    - name: Run PatchWitness gate
+      id: gate
+      shell: bash
+      env:
+        PW_BASE: ${{ inputs.base }}
+        PW_POLICY_REF: ${{ inputs.policy-ref }}
+        PW_CONTRACT: ${{ inputs.contract }}
+        PW_CLEAN_ROOM: ${{ inputs.clean-room }}
+      run: |
+        mkdir -p .patchwitness/evidence
+        clean_room=""
+        if [[ "$PW_CLEAN_ROOM" == "true" ]]; then clean_room="--clean-room"; fi
+        set +e
+        patchwitness gate \
+          --base "$PW_BASE" \
+          --policy-ref "$PW_POLICY_REF" \
+          --contract "$PW_CONTRACT" \
+          $clean_room \
+          --output .patchwitness/evidence/github.json
+        code=$?
+        set -e
+        echo "evidence=.patchwitness/evidence/github.json" >> "$GITHUB_OUTPUT"
+        if [[ $code -eq 0 ]]; then echo "status=pass" >> "$GITHUB_OUTPUT"; else echo "status=fail" >> "$GITHUB_OUTPUT"; fi
+        if [[ -f .patchwitness/evidence/github.json ]]; then
+          patchwitness report .patchwitness/evidence/github.json --format markdown >> "$GITHUB_STEP_SUMMARY"
+        fi
+        exit $code
+

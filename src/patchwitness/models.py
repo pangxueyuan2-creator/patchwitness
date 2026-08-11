@@ -63,9 +63,7 @@ class Contract:
             allowed_paths=tuple(str(item) for item in policy.get("allowed_paths", ("**",))),
             denied_paths=tuple(
                 str(item)
-                for item in policy.get(
-                    "denied_paths", (".git/**", ".patchwitness/evidence/**")
-                )
+                for item in policy.get("denied_paths", (".git/**", ".patchwitness/evidence/**"))
             ),
             protected_paths=tuple(
                 str(item)
@@ -177,4 +175,3 @@ class EvidencePack:
             payload_sha256=str(value["payload_sha256"]),
             extensions=dict(value.get("extensions", {})),
         )
-

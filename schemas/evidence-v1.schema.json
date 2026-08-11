@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pangxueyuan2-creator/patchwitness/raw/main/schemas/evidence-v1.schema.json",
+  "title": "PatchWitness Change Passport v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tool",
+    "repository",
+    "contract",
+    "changes",
+    "checks",
+    "findings",
+    "summary",
+    "captured_at",
+    "payload_sha256",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": { "const": "patchwitness.dev/evidence/v1" },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "patchwitness" },
+        "version": { "type": "string" }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "required": ["root_name", "base_revision", "head_revision", "branch", "remote", "dirty"],
+      "properties": {
+        "root_name": { "type": "string" },
+        "base_revision": { "$ref": "#/$defs/sha1" },
+        "head_revision": { "oneOf": [{ "$ref": "#/$defs/sha1" }, { "type": "null" }] },
+        "branch": { "type": ["string", "null"] },
+        "remote": { "type": ["string", "null"] },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "contract": { "type": "object" },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "status", "additions", "deletions", "binary", "before_sha256", "after_sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "status": { "type": "string" },
+          "additions": { "type": "integer", "minimum": 0 },
+          "deletions": { "type": "integer", "minimum": 0 },
+          "binary": { "type": "boolean" },
+          "before_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+          "after_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "required", "exit_code", "duration_ms", "timed_out", "output_sha256", "output_excerpt", "passed"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "required": { "type": "boolean" },
+          "exit_code": { "type": ["integer", "null"] },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "timed_out": { "type": "boolean" },
+          "output_sha256": { "$ref": "#/$defs/sha256" },
+          "output_excerpt": { "type": "string" },
+          "passed": { "type": "boolean" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "severity", "message", "path", "line"],
+        "properties": {
+          "rule_id": { "pattern": "^PW[0-9]{3}$" },
+          "severity": { "enum": ["info", "warning", "error"] },
+          "message": { "type": "string" },
+          "path": { "type": ["string", "null"] },
+          "line": { "type": ["integer", "null"], "minimum": 1 }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["status", "files_changed", "lines_changed", "checks_passed", "checks_total", "errors", "warnings"],
+      "properties": {
+        "status": { "enum": ["pass", "fail"] },
+        "files_changed": { "type": "integer", "minimum": 0 },
+        "lines_changed": { "type": "integer", "minimum": 0 },
+        "checks_passed": { "type": "integer", "minimum": 0 },
+        "checks_total": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "payload_sha256": { "$ref": "#/$defs/sha256" },
+    "extensions": { "type": "object" }
+  },
+  "$defs": {
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
+

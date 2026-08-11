@@ -113,7 +113,7 @@ def capture_evidence(
                 "os": platform.system(),
                 "architecture": platform.machine(),
                 "python": platform.python_version(),
-            }
+            },
         },
     }
     payload_sha256 = _digest(unsigned)

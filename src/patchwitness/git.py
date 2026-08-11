@@ -161,9 +161,7 @@ def _file_sha256(path: Path) -> str | None:
     return digest.hexdigest()
 
 
-def _batch_git_blob_sha256(
-    root: Path, revision: str, paths: list[str]
-) -> dict[str, str | None]:
+def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[str, str | None]:
     if not paths:
         return {}
     process = subprocess.Popen(

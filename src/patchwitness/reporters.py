@@ -159,11 +159,14 @@ def write_report(
     if report_format == "markdown":
         content = render_markdown(pack)
     elif report_format == "sarif":
-        content = json.dumps(
-            render_sarif(pack, evidence_path=evidence_path),
-            indent=2,
-            sort_keys=True,
-        ) + "\n"
+        content = (
+            json.dumps(
+                render_sarif(pack, evidence_path=evidence_path),
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
     elif report_format == "json":
         content = json.dumps(pack.to_dict(), indent=2, sort_keys=True) + "\n"
     elif report_format == "github":

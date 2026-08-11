@@ -3,7 +3,12 @@ from pathlib import Path
 
 from patchwitness.evidence import capture_evidence
 from patchwitness.models import Contract
-from patchwitness.reporters import render_markdown, render_sarif
+from patchwitness.reporters import (
+    render_github_annotations,
+    render_markdown,
+    render_sarif,
+    write_report,
+)
 
 
 def repository(root: Path) -> Path:
@@ -36,3 +41,9 @@ def test_markdown_and_sarif_are_useful_and_valid(tmp_path: Path) -> None:
     assert "PW002" in markdown
     assert sarif["version"] == "2.1.0"
     assert sarif["runs"][0]["results"][0]["ruleId"] == "PW002"
+    assert "::error file=outside.md::PW002" in render_github_annotations(pack)
+
+    for report_format in ("markdown", "sarif", "json", "github"):
+        output = tmp_path / f"report.{report_format}"
+        assert write_report(pack, output, report_format=report_format) == output
+        assert output.read_text(encoding="utf-8")

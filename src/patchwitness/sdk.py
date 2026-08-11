@@ -39,4 +39,3 @@ class PatchWitness:
 
         changes = tuple(FileChange(**value) for value in pack.changes)
         return analyze_impact(self.root, changes)
-
