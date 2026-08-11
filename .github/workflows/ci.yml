@@ -48,7 +48,7 @@ jobs:
           patchwitness benchmark --files 50 --rounds 1
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.xml
@@ -67,7 +67,7 @@ jobs:
           python -m venv /tmp/patchwitness-wheel
           /tmp/patchwitness-wheel/bin/pip install dist/*.whl
           /tmp/patchwitness-wheel/bin/patchwitness --version
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: distributions
           path: dist/*
