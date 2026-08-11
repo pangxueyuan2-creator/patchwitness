@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from patchwitness.models import FileChange
@@ -97,12 +98,16 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         lines = 0 if binary else _count_lines(full_path)
         stats[path] = (lines, 0, binary)
 
+    before_paths = [path for path, status in statuses.items() if not status.startswith("A")]
+    before_hashes = _batch_git_blob_sha256(root, base_revision, before_paths)
+    after_paths = [path for path, status in statuses.items() if not status.startswith("D")]
+    after_hashes = _parallel_file_sha256(root, after_paths)
     changes: list[FileChange] = []
     for path in sorted(statuses):
         additions, deletions, binary = stats.get(path, (0, 0, False))
         status = statuses[path]
-        before = None if status.startswith("A") else _git_blob_sha256(root, base_revision, path)
-        after = None if status.startswith("D") else _file_sha256(root / path)
+        before = before_hashes.get(path)
+        after = after_hashes.get(path)
         changes.append(
             FileChange(
                 path=path,
@@ -156,13 +161,50 @@ def _file_sha256(path: Path) -> str | None:
     return digest.hexdigest()
 
 
-def _git_blob_sha256(root: Path, revision: str, path: str) -> str | None:
-    result = subprocess.run(
-        ["git", "-C", str(root), "show", f"{revision}:{path}"],
-        capture_output=True,
-        check=False,
+def _batch_git_blob_sha256(
+    root: Path, revision: str, paths: list[str]
+) -> dict[str, str | None]:
+    if not paths:
+        return {}
+    process = subprocess.Popen(
+        ["git", "-C", str(root), "cat-file", "--batch"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
     )
-    return hashlib.sha256(result.stdout).hexdigest() if result.returncode == 0 else None
+    assert process.stdin is not None
+    assert process.stdout is not None
+    output: dict[str, str | None] = {}
+    try:
+        for path in paths:
+            process.stdin.write(f"{revision}:{path}\n".encode())
+        process.stdin.flush()
+        process.stdin.close()
+        for path in paths:
+            header = process.stdout.readline().decode("utf-8", errors="replace").strip()
+            if header.endswith(" missing"):
+                output[path] = None
+                continue
+            parts = header.rsplit(" ", 2)
+            if len(parts) != 3 or parts[1] != "blob":
+                output[path] = None
+                continue
+            size = int(parts[2])
+            content = process.stdout.read(size)
+            process.stdout.read(1)
+            output[path] = hashlib.sha256(content).hexdigest()
+    finally:
+        process.wait(timeout=30)
+    return output
+
+
+def _parallel_file_sha256(root: Path, paths: list[str]) -> dict[str, str | None]:
+    if not paths:
+        return {}
+    workers = min(8, max(1, len(paths)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="patchwitness-hash") as pool:
+        values = pool.map(lambda path: _file_sha256(root / path), paths)
+        return dict(zip(paths, values, strict=True))
 
 
 def _is_binary(path: Path) -> bool:

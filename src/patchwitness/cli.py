@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from patchwitness import __version__
+from patchwitness.benchmark import run_benchmark, write_benchmark
+from patchwitness.cleanroom import CleanRoomError
 from patchwitness.config import (
     ConfigError,
     create_task_contract,
@@ -73,6 +75,11 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--no-checks", action="store_true", help="do not execute checks")
         command.add_argument("--serial", action="store_true", help="run checks sequentially")
         command.add_argument("--max-workers", type=int, default=4)
+        command.add_argument(
+            "--clean-room",
+            action="store_true",
+            help="run checks in a disposable base-derived Git worktree",
+        )
 
     verify_parser = subparsers.add_parser("verify", help="verify evidence integrity offline")
     verify_parser.add_argument("evidence", type=Path)
@@ -120,6 +127,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     explain_parser = subparsers.add_parser("explain", help="explain a policy rule")
     explain_parser.add_argument("rule_id")
+
+    benchmark_parser = subparsers.add_parser(
+        "benchmark", help="run a real local performance benchmark"
+    )
+    benchmark_parser.add_argument("--files", type=int, default=250)
+    benchmark_parser.add_argument("--rounds", type=int, default=5)
+    benchmark_parser.add_argument("--output", type=Path)
     return parser
 
 
@@ -147,7 +161,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _report(args)
         if args.command == "explain":
             return _explain(args)
-    except (ConfigError, EvidenceError, GitError, OSError) as exc:
+        if args.command == "benchmark":
+            return _benchmark(args)
+    except (CleanRoomError, ConfigError, EvidenceError, GitError, OSError, ValueError) as exc:
         return _error(str(exc), json_output=bool(args.json))
     parser.error(f"unknown command: {args.command}")
     return 2
@@ -188,6 +204,7 @@ def _capture(args: argparse.Namespace, *, enforce: bool) -> int:
         parallel_checks=not args.serial,
         max_workers=max(1, args.max_workers),
         contract_source=contract_source,
+        clean_room_checks=bool(args.clean_room),
     )
     output = Path(args.output) if args.output else _default_output(root)
     if not output.is_absolute():
@@ -328,6 +345,25 @@ def _explain(args: argparse.Namespace) -> int:
         },
         json_output=bool(args.json),
     )
+
+
+def _benchmark(args: argparse.Namespace) -> int:
+    result = run_benchmark(files=args.files, rounds=args.rounds)
+    if args.output:
+        write_benchmark(result, args.output)
+        print(f"Benchmark written: {args.output}")
+    elif args.json:
+        print(json.dumps(result, sort_keys=True))
+    else:
+        parameters = result["parameters"]
+        values = result["results_ms"]
+        print(
+            f"PatchWitness benchmark: {parameters['repository_files']} files | "
+            f"{parameters['changed_files']} changed | {parameters['rounds']} rounds"
+        )
+        for name, summary in values.items():
+            print(f"  {name}: median {summary['median']} ms | p95 {summary['p95']} ms")
+    return 0
 
 
 def _default_output(root: Path) -> Path:

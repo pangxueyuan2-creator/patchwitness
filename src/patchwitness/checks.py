@@ -39,7 +39,16 @@ def _run_one(root: Path, spec: CheckSpec) -> CheckResult:
     output: str
     env = os.environ.copy()
     env["PATCHWITNESS_CHECK_ID"] = spec.id
+    env["PATCHWITNESS_REPOSITORY_ROOT"] = str(root)
     env["NO_COLOR"] = "1"
+    source_root = root / "src"
+    if source_root.is_dir():
+        existing_python_path = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = (
+            str(source_root)
+            if not existing_python_path
+            else str(source_root) + os.pathsep + existing_python_path
+        )
     try:
         result = subprocess.run(
             spec.command,

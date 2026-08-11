@@ -43,3 +43,7 @@ A required check failed or timed out.
 
 The contract requires tests but does not define a check.
 
+## PW030
+
+A high-confidence secret shape was found in a changed text file. PatchWitness records only the
+secret type, path, and line; the value is never copied into evidence.

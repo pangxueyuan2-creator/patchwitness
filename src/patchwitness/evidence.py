@@ -15,10 +15,12 @@ from typing import Any
 
 from patchwitness import git
 from patchwitness.checks import run_checks
+from patchwitness.cleanroom import clean_room
 from patchwitness.impact import analyze_impact
 from patchwitness.models import Contract, EvidencePack, GateStatus, Severity
 from patchwitness.plugins import AnalyzerContext, run_analyzers
 from patchwitness.policy import evaluate_policy
+from patchwitness.security import scan_changed_files
 
 SCHEMA_VERSION = "patchwitness.dev/evidence/v1"
 
@@ -36,21 +38,31 @@ def capture_evidence(
     parallel_checks: bool = True,
     max_workers: int = 4,
     contract_source: str = "working-tree",
+    clean_room_checks: bool = False,
 ) -> EvidencePack:
     repository = git.find_root(root)
     base_revision = git.resolve_revision(repository, base)
     changes = git.collect_changes(repository, base_revision)
-    check_results = (
-        run_checks(
+    if execute_checks and clean_room_checks:
+        with clean_room(repository, base_revision) as verifier_root:
+            check_results = run_checks(
+                verifier_root,
+                contract.checks,
+                parallel=parallel_checks,
+                max_workers=max_workers,
+            )
+    elif execute_checks:
+        check_results = run_checks(
             repository,
             contract.checks,
             parallel=parallel_checks,
             max_workers=max_workers,
         )
-        if execute_checks
-        else ()
+    else:
+        check_results = ()
+    findings = evaluate_policy(contract, changes, check_results) + scan_changed_files(
+        repository, changes
     )
-    findings = evaluate_policy(contract, changes, check_results)
     impact = analyze_impact(repository, changes)
     analyzer_extensions = run_analyzers(
         AnalyzerContext(repository, base_revision, contract, changes)
@@ -93,6 +105,10 @@ def capture_evidence(
         "extensions": {
             "impact": impact,
             "analyzers": analyzer_extensions,
+            "verification": {
+                "clean_room": clean_room_checks,
+                "git_hooks_disabled": clean_room_checks,
+            },
             "environment": {
                 "os": platform.system(),
                 "architecture": platform.machine(),
