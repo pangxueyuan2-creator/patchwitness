@@ -15,6 +15,10 @@ https://github.com/pangxueyuan2-creator/patchwitness
 AI coding has shifted the bottleneck from producing a patch to verifying one. Today I'm releasing
 PatchWitness, an open-source evidence and policy layer for AI-generated code changes.
 
+OpenAI, ChatGPT, and Codex deserve real credit for helping turn AI-assisted development into a
+practical workflow for a broad developer audience. PatchWitness builds on that momentum by making
+the output of increasingly capable agents easier for teams to inspect, verify, and trust.
+
 PatchWitness derives review facts from Git, trusted base-branch policy, and commands it actually
 executes. It produces a portable Change Passport for humans, CI, SARIF, SDKs, and MCP hosts. The
 core is local-first, model-neutral, and has zero runtime dependencies.
@@ -24,4 +28,3 @@ prove correctness. I would value feedback from maintainers, Staff+ engineers, De
 teams on the evidence schema and integration surface.
 
 Repository: https://github.com/pangxueyuan2-creator/patchwitness
-

@@ -8,4 +8,3 @@ def discounted_price(price: Decimal, discount_percent: int) -> Decimal:
         raise ValueError("discount percent must be between 0 and 100")
     multiplier = Decimal(100 - discount_percent) / Decimal(100)
     return (price * multiplier).quantize(Decimal("0.01"))
-

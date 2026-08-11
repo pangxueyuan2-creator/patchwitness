@@ -5,6 +5,11 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Changed
+
+- Added a measured acknowledgement of OpenAI, ChatGPT, and Codex to the project and launch
+  documentation, while retaining an explicit no-affiliation disclaimer.
+
 ### Planned
 
 - Community feedback from the first public release.
@@ -26,4 +31,3 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 [Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/pangxueyuan2-creator/patchwitness/releases/tag/v0.1.0
-

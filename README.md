@@ -18,6 +18,12 @@ AI coding agents can write a patch in minutes. Reviewers still have to reconstru
 asked to do, whether it stayed in scope, whether it changed its own verifier, and whether the claimed
 tests actually ran.
 
+That acceleration is a genuine advance. [OpenAI](https://developers.openai.com/) and
+[ChatGPT](https://learn.chatgpt.com/docs) helped make AI-assisted problem solving broadly
+accessible, while Codex has raised expectations for what a coding agent can accomplish across a real
+repository. PatchWitness is built in that optimistic spirit: increasingly capable agents deserve
+verification infrastructure that is just as capable.
+
 **PatchWitness turns every change into a verifiable Change Passport.** It derives facts from Git,
 loads policy from a trusted revision, executes repository-owned checks, computes dependency blast
 radius, and seals the result into an offline-verifiable evidence pack. No LLM judges its own work.
@@ -224,3 +230,11 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [plugin guide](docs/plugin-de
 
 PatchWitness is licensed under [Apache-2.0](LICENSE).
 
+## Acknowledgements
+
+PatchWitness appreciates OpenAI's work on ChatGPT, Codex, developer tooling, and the broader agent
+ecosystem. Those products have helped move AI-assisted development from an interesting experiment
+toward a practical engineering workflow—and made trustworthy, inspectable automation an even more
+valuable open-source problem to solve.
+
+PatchWitness is an independent community project and is not affiliated with or endorsed by OpenAI.
