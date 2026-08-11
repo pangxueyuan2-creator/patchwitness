@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from patchwitness import __version__
 from patchwitness.evidence import EvidenceError, capture_evidence, verify_evidence
 from patchwitness.models import Contract, GateStatus
 
@@ -27,6 +28,7 @@ def test_capture_and_verify_round_trip(tmp_path: Path) -> None:
     contract = Contract(require_tests=False)
     pack = capture_evidence(root, contract, execute_checks=False)
     assert pack.status == GateStatus.PASS
+    assert pack.tool["version"] == __version__
     assert pack.summary["files_changed"] == 1
     assert verify_evidence(pack).payload_sha256 == pack.payload_sha256
 

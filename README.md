@@ -70,10 +70,10 @@ PatchWitness is currently distributed from GitHub:
 
 ```bash
 # pipx
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.1/patchwitness-0.1.1-py3-none-any.whl"
 
 # or uv
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.1/patchwitness-0.1.1-py3-none-any.whl"
 ```
 
 Bootstrap the policy once. Pick the real check command for your repository, replace the generated
@@ -141,7 +141,7 @@ patchwitness report evidence.json --format sarif --output patchwitness.sarif
 Put the same trusted-base gate on every pull request:
 
 ```yaml
-- uses: pangxueyuan2-creator/patchwitness@v0.1.0
+- uses: pangxueyuan2-creator/patchwitness@v0.1.1
   with:
     base: ${{ github.event.pull_request.base.sha }}
     policy-ref: ${{ github.event.pull_request.base.sha }}
@@ -269,7 +269,7 @@ high-risk repositories.
 
 ## Project status
 
-`v0.1.0` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
+`v0.1.1` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
 [ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
 estimates in [OSS_READINESS.md](OSS_READINESS.md).

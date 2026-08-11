@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "patchwitness"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Evidence-first trust gates for AI-generated code changes"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -55,6 +55,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/patchwitness"]
 
+[tool.hatch.version]
+path = "src/patchwitness/_version.py"
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
@@ -70,4 +73,3 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 python_version = "3.11"
 strict = true
 packages = ["patchwitness"]
-

@@ -5,6 +5,23 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Planned
+
+- Community feedback from the first public releases.
+
+## [0.1.1] - 2026-08-11
+
+### Security
+
+- Pinned every third-party GitHub Action to an immutable commit and disabled persisted checkout
+  credentials in read-only jobs.
+- Added release tag/version validation and GitHub build-provenance attestations for release assets.
+- Added a pull-request dependency review gate and moved Action update checks to a weekly cadence.
+- Enabled repository dependency alerts, automated security fixes, and default-branch protection
+  against deletion and non-fast-forward pushes.
+- Added preventive ignores for common local credentials and signing keys, plus repository security
+  regression tests that enforce workflow permissions and immutable Action references.
+
 ### Changed
 
 - Added a measured acknowledgement of OpenAI, ChatGPT, and Codex to the project and launch
@@ -21,10 +38,6 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Source-linked OSS readiness scorecard and an explicit maintainer workflow for honest long-term
   triage, review, releases, security response, and evidence updates.
 
-### Planned
-
-- Community feedback from the first public release.
-
 ## [0.1.0] - 2026-08-11
 
 ### Added
@@ -40,5 +53,6 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Typed Python SDK, analyzer entry points, and stdio MCP tools.
 - Cross-platform CLI, Docker image, composite GitHub Action, CI, tests, and real benchmark harness.
 
-[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pangxueyuan2-creator/patchwitness/releases/tag/v0.1.0

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 
+from patchwitness._version import __version__
 from patchwitness.config import load_contract
 from patchwitness.evidence import capture_evidence, load_evidence, verify_evidence
 from patchwitness.git import collect_changes, resolve_revision
@@ -46,7 +47,7 @@ class MCPServer:
                 {
                     "protocolVersion": "2025-11-25",
                     "capabilities": {"tools": {"listChanged": False}},
-                    "serverInfo": {"name": "patchwitness", "version": "0.1.0"},
+                    "serverInfo": {"name": "patchwitness", "version": __version__},
                 },
             )
         if method == "tools/list":

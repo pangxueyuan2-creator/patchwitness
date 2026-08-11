@@ -1,6 +1,6 @@
 # Project status
 
-**Current release:** v0.1.0 public alpha  
+**Current release:** v0.1.1 public alpha
 **Evidence schema:** v1  
 **Maintainer status:** new project, single primary maintainer  
 **Production claim:** no broad production adoption claimed
@@ -28,7 +28,9 @@
 ## Release bar
 
 Every release must pass tests, Ruff, strict mypy, package build, CLI smoke tests, and PatchWitness's
-own trusted-base clean-room gate. Performance claims must come from committed raw benchmark output.
+own trusted-base clean-room gate. Release artifacts receive GitHub build-provenance attestations,
+and the release workflow rejects tags that do not match the packaged version. Performance claims
+must come from committed raw benchmark output.
 
 ## Adoption status
 

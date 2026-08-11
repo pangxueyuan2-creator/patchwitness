@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from patchwitness import git
+from patchwitness._version import __version__
 from patchwitness.checks import run_checks
 from patchwitness.cleanroom import clean_room
 from patchwitness.impact import analyze_impact
@@ -76,7 +77,7 @@ def capture_evidence(
     captured_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
     unsigned: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "tool": {"name": "patchwitness", "version": "0.1.0"},
+        "tool": {"name": "patchwitness", "version": __version__},
         "repository": {
             "root_name": repository.name,
             "base_revision": base_revision,

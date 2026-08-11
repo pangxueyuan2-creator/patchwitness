@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from patchwitness import __version__
 from patchwitness.mcp import MCPServer
 
 
@@ -8,6 +9,7 @@ def test_mcp_initialize_and_tool_discovery(tmp_path: Path) -> None:
     initialized = server.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize"})
     assert initialized is not None
     assert initialized["result"]["serverInfo"]["name"] == "patchwitness"
+    assert initialized["result"]["serverInfo"]["version"] == __version__
     listed = server.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert listed is not None
     names = {tool["name"] for tool in listed["result"]["tools"]}

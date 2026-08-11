@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: PatchWitness version
-      placeholder: patchwitness 0.1.0
+      placeholder: patchwitness 0.1.1
     validations:
       required: true
   - type: dropdown
@@ -33,4 +33,3 @@ body:
       label: Expected and actual behavior
     validations:
       required: true
-

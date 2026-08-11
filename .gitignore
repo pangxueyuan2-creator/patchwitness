@@ -12,3 +12,17 @@ build/
 .patchwitness/evidence/
 .patchwitness/cache/
 demo/output/
+
+# Local secrets and signing material. Keep shareable examples explicitly allowed.
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.npmrc
+.pypirc
