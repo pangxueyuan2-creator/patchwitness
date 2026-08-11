@@ -2,7 +2,7 @@
 
 **Decision: NOT READY TO APPLY**
 
-Snapshot captured: **2026-08-11 08:39 UTC**. This file records public, source-verifiable evidence.
+Snapshot captured: **2026-08-11 09:19 UTC**. This file records public, source-verifiable evidence.
 Unknown values are not estimated. Maintainer runs, maintainer downloads, and bot activity are not
 counted as external adoption.
 
@@ -21,7 +21,7 @@ primary or core maintainers, including pull request review, issue triage, and re
 | Active maintenance | 3/10 | One release, 11 commits, working automation, and three merged dependency updates exist, all within the repository's first day; sustained maintenance is not yet established. |
 | Maintainer evidence | 3/10 | The owner authored the project, manages the release, and merged three Dependabot pull requests. There is no external human PR review, issue triage, or security-response history yet. |
 | Technical quality | 8/10 | Cross-platform CI, CodeQL, tests, strict typing, a threat model, release artifacts, a real demo, and reproducible evidence are present. This score does not imply adoption. |
-| External validation | 0/10 | No verified external mention, testimonial, issue, pull request, discussion, integration, or user report. |
+| External validation | 0/10 | One verified maintainer-authored Reddit launch comment exists, but it is outreach rather than third-party validation. There is no external testimonial, issue, pull request, integration, or user report. |
 
 ## Current evidence
 
@@ -42,8 +42,8 @@ primary or core maintainers, including pull request review, issue triage, and re
 | Verified external GitHub Action usage | 0 found | [Exact GitHub code search](https://github.com/search?q=%22pangxueyuan2-creator%2Fpatchwitness%22&type=code) returned no external reference at capture time |
 | Package registry | Not published on PyPI | [`patchwitness` PyPI JSON endpoint](https://pypi.org/pypi/patchwitness/json) returned 404 at capture time |
 | Package downloads | Registry: not applicable; external Release download: UNKNOWN | No package-registry publication; the one raw Release download cannot be attributed publicly |
-| External mentions | 0 verified; exhaustive count UNKNOWN | Exact repository URL/name searches found no attributable external mention at capture time |
-| Discussions | 0 | [GitHub Discussions](https://github.com/pangxueyuan2-creator/patchwitness/discussions) |
+| External mentions | 1 verified maintainer-authored launch comment; 0 verified third-party mentions; exhaustive count UNKNOWN | [r/devops Weekly Self Promotion comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/) publicly links the repository and demo; it is not counted as external adoption or validation |
+| Discussions | 1 maintainer-authored launch announcement; 0 external discussions or replies | [GitHub Discussion #4](https://github.com/pangxueyuan2-creator/patchwitness/discussions/4) |
 | Other repositories integrated | 0 verified | Exact GitHub code search found no external action or CLI reference |
 | Real user feedback | 0 verified | No issue, discussion, PR, or linked public report from a non-maintainer |
 
@@ -55,6 +55,8 @@ primary or core maintainers, including pull request review, issue triage, and re
   [PR #2](https://github.com/pangxueyuan2-creator/patchwitness/pull/2), and
   [PR #3](https://github.com/pangxueyuan2-creator/patchwitness/pull/3) were merged by the owner.
 - CI and security automation: active CI, CodeQL, PatchWitness, release, and Dependabot workflows.
+- Launch and feedback management: [GitHub Discussion #4](https://github.com/pangxueyuan2-creator/patchwitness/discussions/4)
+  and a policy-compliant [r/devops self-promotion comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/).
 - Sustained history: **not yet demonstrated**; the repository was created on 2026-08-11.
 
 ## Three missing evidence classes
