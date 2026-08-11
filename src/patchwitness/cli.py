@@ -11,7 +11,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from patchwitness import __version__
-from patchwitness.config import ConfigError, initialize_project, load_contract
+from patchwitness.config import (
+    ConfigError,
+    initialize_project,
+    load_contract,
+    load_contract_bytes,
+)
 from patchwitness.evidence import (
     EvidenceError,
     capture_evidence,
@@ -19,7 +24,15 @@ from patchwitness.evidence import (
     verify_evidence,
     write_evidence,
 )
-from patchwitness.git import GitError, find_root
+from patchwitness.git import (
+    GitError,
+    collect_changes,
+    find_root,
+    load_file_at_revision,
+    resolve_revision,
+)
+from patchwitness.impact import analyze_impact
+from patchwitness.mcp import MCPServer
 from patchwitness.models import EvidencePack, GateStatus
 
 
@@ -44,6 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument(
             "--contract", default=".patchwitness.toml", help="path to the TOML contract"
         )
+        command.add_argument(
+            "--policy-ref",
+            help="load the contract from this trusted Git revision instead of the working tree",
+        )
         command.add_argument("--output", help="evidence JSON path")
         command.add_argument("--no-checks", action="store_true", help="do not execute checks")
         command.add_argument("--serial", action="store_true", help="run checks sequentially")
@@ -59,6 +76,15 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--format", choices=("text", "markdown", "json"), default="text")
 
     subparsers.add_parser("doctor", help="check local prerequisites and repository state")
+
+    impact_parser = subparsers.add_parser(
+        "impact", help="compute deterministic change blast radius"
+    )
+    impact_parser.add_argument("--base", default="HEAD")
+    impact_parser.add_argument("--no-cache", action="store_true")
+
+    mcp_parser = subparsers.add_parser("mcp", help="serve PatchWitness tools over stdio MCP")
+    mcp_parser.add_argument("--root", default=".")
     return parser
 
 
@@ -76,6 +102,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _inspect(args)
         if args.command == "doctor":
             return _doctor(args)
+        if args.command == "impact":
+            return _impact(args)
+        if args.command == "mcp":
+            return MCPServer(Path(args.root)).serve()
     except (ConfigError, EvidenceError, GitError, OSError) as exc:
         return _error(str(exc), json_output=bool(args.json))
     parser.error(f"unknown command: {args.command}")
@@ -94,9 +124,21 @@ def _init(args: argparse.Namespace) -> int:
 def _capture(args: argparse.Namespace, *, enforce: bool) -> int:
     root = find_root()
     contract_path = Path(args.contract)
-    if not contract_path.is_absolute():
-        contract_path = root / contract_path
-    contract = load_contract(contract_path)
+    if args.policy_ref:
+        if contract_path.is_absolute():
+            raise ConfigError("--contract must be repository-relative with --policy-ref")
+        policy_revision = resolve_revision(root, args.policy_ref)
+        relative = contract_path.as_posix()
+        contract = load_contract_bytes(
+            load_file_at_revision(root, policy_revision, relative),
+            source=f"git:{policy_revision}:{relative}",
+        )
+        contract_source = f"git:{policy_revision}:{relative}"
+    else:
+        if not contract_path.is_absolute():
+            contract_path = root / contract_path
+        contract = load_contract(contract_path)
+        contract_source = "working-tree"
     pack = capture_evidence(
         root,
         contract,
@@ -104,6 +146,7 @@ def _capture(args: argparse.Namespace, *, enforce: bool) -> int:
         execute_checks=not args.no_checks,
         parallel_checks=not args.serial,
         max_workers=max(1, args.max_workers),
+        contract_source=contract_source,
     )
     output = Path(args.output) if args.output else _default_output(root)
     if not output.is_absolute():
@@ -156,6 +199,27 @@ def _doctor(args: argparse.Namespace) -> int:
     diagnostics["ok"] = ok
     _emit(diagnostics, json_output=bool(args.json))
     return 0 if ok else 1
+
+
+def _impact(args: argparse.Namespace) -> int:
+    root = find_root()
+    base = resolve_revision(root, args.base)
+    result = analyze_impact(
+        root,
+        collect_changes(root, base),
+        use_cache=not args.no_cache,
+    )
+    if args.json:
+        print(json.dumps(result, sort_keys=True))
+    else:
+        print(f"PatchWitness impact: {result['risk_level'].upper()} ({result['risk_score']}/100)")
+        print(
+            f"  {len(result['direct_dependents'])} direct · "
+            f"{len(result['transitive_dependents'])} transitive · "
+            f"{len(result['affected_tests'])} tests"
+        )
+        print(f"  Indexed: {result['files_indexed']} files / {result['edges_indexed']} edges")
+    return 0
 
 
 def _default_output(root: Path) -> Path:

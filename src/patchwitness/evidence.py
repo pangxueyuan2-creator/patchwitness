@@ -15,7 +15,9 @@ from typing import Any
 
 from patchwitness import git
 from patchwitness.checks import run_checks
+from patchwitness.impact import analyze_impact
 from patchwitness.models import Contract, EvidencePack, GateStatus, Severity
+from patchwitness.plugins import AnalyzerContext, run_analyzers
 from patchwitness.policy import evaluate_policy
 
 SCHEMA_VERSION = "patchwitness.dev/evidence/v1"
@@ -49,6 +51,10 @@ def capture_evidence(
         else ()
     )
     findings = evaluate_policy(contract, changes, check_results)
+    impact = analyze_impact(repository, changes)
+    analyzer_extensions = run_analyzers(
+        AnalyzerContext(repository, base_revision, contract, changes)
+    )
     status = (
         GateStatus.FAIL
         if any(finding.severity == Severity.ERROR for finding in findings)
@@ -85,6 +91,8 @@ def capture_evidence(
         },
         "captured_at": captured_at,
         "extensions": {
+            "impact": impact,
+            "analyzers": analyzer_extensions,
             "environment": {
                 "os": platform.system(),
                 "architecture": platform.machine(),
