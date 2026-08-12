@@ -10,6 +10,7 @@ your own project.
 | [Python service](python-service/README.md) | About 5 minutes | A task contract limits an agent to pricing code and records a real test command. |
 | [GitHub Actions](../docs/integrations/github-actions.md) | About 5 minutes | A pull request is evaluated against policy loaded from its immutable base SHA. |
 | [Cline TaskComplete hook](cline-hooks/README.md) | About 3 minutes | A successful Cline turn automatically triggers a structural Change Passport without retaining prompt or model output. |
+| [Provider-neutral coding agent instructions](../docs/integrations/coding-agents.md) | About 2 minutes | Adds an advisory local passport and hands merge enforcement to protected CI. |
 | [MCP integration](../docs/integrations/mcp.md) | About 5 minutes | An agent host can capture, verify, and inspect impact through bounded stdio tools. |
 
 Every example uses the real PatchWitness engine. Committed transcripts and passports are generated

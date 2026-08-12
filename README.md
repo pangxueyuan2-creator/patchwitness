@@ -242,6 +242,10 @@ Using Cline? The validated [Cline `TaskComplete` hook](docs/integrations/cline.m
 structural Change Passport after each successful agent turn. It does not retain the prompt or model
 output, and it leaves merge enforcement to the required GitHub Action.
 
+Using another coding agent? Copy the provider-neutral
+[agent instruction and CI handoff](docs/integrations/coding-agents.md) for Codex, ChatGPT, Claude
+Code, Cursor, Copilot, Aider, or a custom orchestrator.
+
 ## Why it is different
 
 1. **Infrastructure-derived evidence.** Results come from Git objects, file hashes, process exit
