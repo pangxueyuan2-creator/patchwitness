@@ -1,0 +1,70 @@
+name: Trial report
+description: Share a real, sanitized PatchWitness run and help improve first-use adoption
+title: "[Trial]: "
+labels: [feedback, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying PatchWitness. Honest negative results are useful. Do not include private source, credentials, proprietary logs, or sensitive Change Passports.
+  - type: input
+    id: version
+    attributes:
+      label: PatchWitness version
+      placeholder: patchwitness 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: trial
+    attributes:
+      label: Trial path
+      options:
+        - Reproducible demo
+        - doctor + scan --no-checks
+        - Full local scan
+        - GitHub Actions
+        - SDK / MCP / plugin
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Public repository or sanitized project shape
+      description: A public URL is optional. Otherwise list only language, build system, and repository shape.
+      placeholder: Python monorepo using pytest; repository URL omitted
+    validations:
+      required: true
+  - type: input
+    id: workflow
+    attributes:
+      label: Coding workflow
+      description: Which agent, human workflow, CI system, or orchestrator produced the change?
+      placeholder: Codex locally, then a GitHub pull request
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+      description: Include commands, exit codes, and sanitized findings. Say whether the result was useful, noisy, or incomplete.
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: First-use friction
+      description: What was confusing, slow, or missing? "None" is acceptable.
+    validations:
+      required: true
+  - type: dropdown
+    id: permission
+    attributes:
+      label: May the project list this as a verified trial?
+      description: Permission affects only aggregate adoption records. PatchWitness will not quote you or claim an integration without separate explicit permission.
+      options:
+        - Yes, as an anonymous verified trial
+        - Yes, link the public repository above
+        - No
+    validations:
+      required: true

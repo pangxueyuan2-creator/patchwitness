@@ -112,6 +112,32 @@ recommended command. Use `patchwitness scan --no-checks` for structural analysis
 > your local user permissions. For a repository you do not trust, inspect the commands with
 > `patchwitness doctor` or begin with `patchwitness scan --no-checks`.
 
+## Help validate PatchWitness on 10 real repositories
+
+PatchWitness is looking for its first 10 non-maintainer trial runs. The goal is not testimonials or
+stars; it is to learn where independent change evidence is useful, noisy, or missing in real coding
+agent and CI workflows.
+
+Choose the smallest safe trial:
+
+```bash
+# Reproduce the known risky-workflow case without installing anything.
+python demo/run_demo.py
+
+# Or inspect one of your own trusted repositories without executing its code.
+patchwitness doctor
+patchwitness scan --no-checks
+```
+
+If the result teaches you anything—even that PatchWitness is not useful for your workflow—please
+open a structured [Trial Report](https://github.com/pangxueyuan2-creator/patchwitness/issues/new?template=trial-report.yml).
+Include only sanitized output or a public repository link. Do not share private source, credentials,
+proprietary logs, or sensitive Change Passports.
+
+The maintainer will use real trial reports to prioritize fixes and integrations, and will count a
+repository as an adopter only with the user's explicit permission. See the
+[five-minute early-adopter guide](docs/early-adopter-guide.md).
+
 ## Persist a trusted policy in five minutes
 
 After trying the scan, generate a reviewable policy. `init` uses the same detection engine and can

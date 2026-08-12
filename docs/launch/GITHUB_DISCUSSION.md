@@ -6,7 +6,7 @@ Welcome to PatchWitness — what should a trustworthy Change Passport prove next
 
 ## Body
 
-PatchWitness v0.1.0 is now public. It provides a deterministic, local-first evidence layer for
+PatchWitness v0.2.0 is now public. It provides a deterministic, local-first evidence layer for
 AI-generated and human-authored repository changes.
 
 The core answers five narrow questions:
@@ -38,7 +38,13 @@ Where you ran PatchWitness (local hook, CI, orchestrator, MCP, other):
 Useful finding:
 Noisy or missing evidence:
 Preferred integration (core rule, plugin, provider, CI adapter):
+May this be counted as an anonymous verified trial, linked publicly, or not counted?:
 ```
+
+I am specifically looking for the first 10 non-maintainer trial runs. Honest negative results are
+welcome; this is not a request for stars, testimonials, or positive reviews. A structured
+[Trial Report](https://github.com/pangxueyuan2-creator/patchwitness/issues/new?template=trial-report.yml)
+is also available if the result is easier to reproduce as an issue.
 
 Questions about the trust model, evidence schema, and roadmap are welcome. Adversarial examples are
 especially valuable when they are minimal and reproducible.
