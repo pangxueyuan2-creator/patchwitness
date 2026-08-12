@@ -14,6 +14,8 @@
 - Real check execution, clean-room worktrees, and evidence verification.
 - Python/JS/TS file dependency impact.
 - SDK, MCP, analyzer plugins, JSON, SARIF, Markdown, and GitHub annotations.
+- Cline `TaskComplete` example validated against the public `agent_end` hook contract; this is a
+  post-task evidence trigger, not a claim of native endorsement or full model-session certification.
 - Automated tests on Python 3.11-3.14 and the three major desktop OS families.
 - Dockerfile with build/run smoke validation in GitHub CI (not locally validated on the initial
   maintainer machine because Docker is not installed there).

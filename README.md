@@ -214,6 +214,10 @@ The complete ready-to-copy workflow, permissions, and dependency-setup notes are
 [GitHub Actions integration](docs/integrations/github-actions.md). More runnable repository shapes
 are indexed under [`examples/`](examples/README.md).
 
+Using Cline? The validated [Cline `TaskComplete` hook](docs/integrations/cline.md) triggers a
+structural Change Passport after each successful agent turn. It does not retain the prompt or model
+output, and it leaves merge enforcement to the required GitHub Action.
+
 ## Why it is different
 
 1. **Infrastructure-derived evidence.** Results come from Git objects, file hashes, process exit
@@ -238,6 +242,7 @@ are indexed under [`examples/`](examples/README.md).
 | JSON evidence | Ready | Store, diff, sign, or ingest Change Passports |
 | SARIF / GitHub | Ready | Code scanning and PR annotations |
 | MCP | Ready | Give any MCP host read/capture/impact tools |
+| Cline hook | Hook-contract validated | Trigger a structural passport after `TaskComplete` |
 | Analyzer plugins | Ready | Add organization- or language-specific evidence |
 | Docker | Ready | Reproducible CI execution |
 | Hosted control plane | Intentionally absent | Core remains local-first and vendor-neutral |

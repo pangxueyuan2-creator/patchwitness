@@ -5,6 +5,13 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Added
+
+- Added a Cline `TaskComplete.py` integration that captures a structural Change Passport after a
+  successful agent turn without retaining prompt, model output, or user identity fields.
+- Added a subprocess compatibility test pinned to Cline's current `AgentEndHookPayload` contract and
+  a setup guide that separates post-task evidence capture from CI merge enforcement.
+
 ### Planned
 
 - Community feedback from the first public releases.
