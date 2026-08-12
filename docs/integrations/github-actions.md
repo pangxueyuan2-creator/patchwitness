@@ -1,5 +1,10 @@
 # GitHub Actions integration
 
+Use the Action as the enforcement half of a two-stage workflow: `patchwitness scan` provides fast,
+advisory local feedback, while a required pull-request job loads reviewed policy from the immutable
+base SHA and can block merge. Install it from
+[GitHub Marketplace](https://github.com/marketplace/actions/patchwitness-gate).
+
 The repository is itself a composite action:
 
 ```yaml

@@ -60,3 +60,15 @@ Passports into a public issue. Report vulnerabilities through
 PatchWitness does not add telemetry for this program; adoption is recorded only from public or
 explicitly opted-in evidence.
 
+## Local feedback and CI enforcement
+
+The recommended rollout uses both:
+
+1. Run `patchwitness scan` locally or from an agent post-task hook for fast, advisory feedback.
+2. Review and commit `.patchwitness.toml` on the protected base branch.
+3. Add [PatchWitness Gate](https://github.com/marketplace/actions/patchwitness-gate) to pull requests,
+   load policy from the immutable base SHA, and make the job required in branch protection.
+
+Local runs shorten the feedback loop, but the developer or agent still controls that environment.
+The required CI job is the enforcement boundary. CODEOWNERS and branch protection remain responsible
+for protecting the base branch and deciding who may approve policy changes.

@@ -117,6 +117,20 @@ used to choose commands:
 `patchwitness doctor` shows the detected profile, missing executables, repository state, and the next
 recommended command. Use `patchwitness scan --no-checks` for structural analysis only.
 
+## Where PatchWitness belongs
+
+Use both surfaces for different guarantees:
+
+| Surface | Role | Trust level |
+|---|---|---|
+| Local or agent post-task hook | Fast feedback before a pull request: inspect the real diff, protected files, and a preview Change Passport | Advisory; the developer or agent controls the environment |
+| Required GitHub Action | Merge enforcement: load reviewed policy from the immutable base SHA, run repository-owned checks, and retain evidence | Authoritative when branch protection requires the job and protects the base branch |
+
+Start locally with `patchwitness scan`, then make
+[PatchWitness Gate](https://github.com/marketplace/actions/patchwitness-gate) required after the
+generated `.patchwitness.toml` has been reviewed and committed. PatchWitness complements CODEOWNERS,
+branch protection, and semantic review; it does not replace them.
+
 > [!CAUTION]
 > Detection only reads repository metadata, but detected test commands execute repository code with
 > your local user permissions. For a repository you do not trust, inspect the commands with
