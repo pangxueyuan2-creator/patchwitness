@@ -2,7 +2,7 @@
 
 **Decision: NOT READY TO APPLY**
 
-Snapshot refreshed: **2026-08-12 03:40 UTC**. This file records public, source-verifiable evidence.
+Snapshot refreshed: **2026-08-12 04:36 UTC**. This file records public, source-verifiable evidence.
 Unknown values are not estimated. Maintainer runs, maintainer downloads, and bot activity are not
 counted as external adoption.
 
@@ -45,7 +45,7 @@ primary or core maintainers, including pull request review, issue triage, and re
 | GitHub traffic | 0 counted views; 0 counted clones in the available 14-day window | Repository traffic API checked by the maintainer; GitHub exposes this endpoint only to push-authorized users, so the value is recorded without claiming a public verification link |
 | Package registry | Not published on PyPI | [`patchwitness` PyPI JSON endpoint](https://pypi.org/pypi/patchwitness/json) returned 404 at capture time |
 | Package downloads | Registry: not applicable; external Release downloads: UNKNOWN | No package-registry publication; raw Release downloads cannot be attributed publicly |
-| External mentions | 3 verified maintainer-authored launch publications; 0 verified third-party mentions; exhaustive count UNKNOWN | [r/devops comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/), [DEV Community article](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88), and [X thread](https://x.com/jordyuout/status/2087162269738336713) publicly link the project or demo; none is counted as external adoption or validation |
+| External mentions | 4 verified maintainer-authored launch publications; 0 verified third-party mentions; exhaustive count UNKNOWN | [r/devops comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/), [r/ChatGPTCoding comment](https://www.reddit.com/r/ChatGPTCoding/comments/1vkehmk/comment/p36g7xn/), [DEV Community article](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88), and [X thread](https://x.com/jordyuout/status/2087162269738336713) publicly link the project or demo; none is counted as external adoption or validation |
 | Discussions | 1 maintainer-authored launch announcement; 0 external discussions or replies | [GitHub Discussion #4](https://github.com/pangxueyuan2-creator/patchwitness/discussions/4) |
 | Other repositories integrated | 0 verified | Exact GitHub code search found no external action or CLI reference |
 | External technical feedback | 1 verified comment; 0 verified trials | [Anas Rhimi's DEV comment](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j) independently identifies the self-reporting trust problem and asks whether PatchWitness belongs in CI or pre-PR. The commenter has a separate [public GitHub account](https://github.com/Mealiclay01). This is feedback, not proof of use, adoption, or endorsement. |
@@ -67,7 +67,9 @@ primary or core maintainers, including pull request review, issue triage, and re
   and Dependabot workflows; immutable Action pins and a default-branch history-protection ruleset.
 - Launch and feedback management: [GitHub Discussion #4](https://github.com/pangxueyuan2-creator/patchwitness/discussions/4)
   plus policy-compliant launch publications on [r/devops](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/),
-  [DEV Community](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88),
+  [r/ChatGPTCoding](https://www.reddit.com/r/ChatGPTCoding/comments/1vkehmk/comment/p36g7xn/),
+  [DEV Community](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88), including a
+  [public technical reply](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3cp2p),
   and [X](https://x.com/jordyuout/status/2087162269738336713).
 - Sustained history: **not yet demonstrated**; the repository was created on 2026-08-11.
 

@@ -16,7 +16,7 @@ Dependabot activity and maintainer downloads/tests do not count as user adoption
 
 ## Current verified snapshot
 
-Refreshed 2026-08-12 03:40 UTC from GitHub repository, release, and traffic APIs:
+Refreshed 2026-08-12 04:36 UTC from GitHub repository, release, and traffic APIs:
 
 | Metric | Current value | Interpretation |
 |---|---:|---|
@@ -28,6 +28,8 @@ Refreshed 2026-08-12 03:40 UTC from GitHub repository, release, and traffic APIs
 | GitHub Marketplace listing | 1 public listing | Distribution is ready; usage remains unknown. |
 | Verified external integrations | 0 | No public repository reference has been verified. |
 | External technical feedback | 1 comment | A non-maintainer discussed the threat model on the DEV article; no trial was claimed. |
+| Maintainer responses to external feedback | 1 public reply | The maintainer answered the CI-gate versus local-workflow question with a concrete deployment model. |
+| Policy-compliant launch comments | 2 live | r/devops and r/ChatGPTCoding weekly self-promotion threads; these are reach, not adoption. |
 
 Marketplace publication and maintainer-authored promotion are reach mechanisms, not adoption
 evidence. The next valid milestone remains one non-maintainer trial with reproducible feedback.
