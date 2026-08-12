@@ -14,6 +14,23 @@ Baseline captured 2026-08-11 after the initial public release:
 
 Dependabot activity and maintainer downloads/tests do not count as user adoption.
 
+## Current verified snapshot
+
+Refreshed 2026-08-12 03:40 UTC from GitHub repository, release, and traffic APIs:
+
+| Metric | Current value | Interpretation |
+|---|---:|---|
+| Stars | 1 raw; 0 external verified | The only known star is the maintainer's. |
+| Forks | 0 | No external fork is visible. |
+| Release asset downloads | 12 raw | Downloader identity is unavailable; none is counted as a real user. |
+| Counted repository views | 0 | The immediate bottleneck is qualified discovery, not demonstrated conversion. |
+| Counted repository clones | 0 | No clone is treated as adoption. |
+| GitHub Marketplace listing | 1 public listing | Distribution is ready; usage remains unknown. |
+| Verified external integrations | 0 | No public repository reference has been verified. |
+
+Marketplace publication and maintainer-authored promotion are reach mechanisms, not adoption
+evidence. The next valid milestone remains one non-maintainer trial with reproducible feedback.
+
 ## Milestone definitions and actions
 
 ### First real user

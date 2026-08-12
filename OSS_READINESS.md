@@ -2,7 +2,7 @@
 
 **Decision: NOT READY TO APPLY**
 
-Snapshot captured: **2026-08-11 14:34 UTC**. This file records public, source-verifiable evidence.
+Snapshot refreshed: **2026-08-12 03:40 UTC**. This file records public, source-verifiable evidence.
 Unknown values are not estimated. Maintainer runs, maintainer downloads, and bot activity are not
 counted as external adoption.
 
@@ -31,7 +31,7 @@ primary or core maintainers, including pull request review, issue triage, and re
 | Forks | 0 | [GitHub repository API](https://api.github.com/repos/pangxueyuan2-creator/patchwitness) |
 | Subscribing watchers | 1 raw; 0 external verified | [GitHub subscribers API](https://api.github.com/repos/pangxueyuan2-creator/patchwitness/subscribers) identifies the owner as the only subscriber |
 | Releases | 3 (`v0.1.0`, `v0.1.1`, `v0.2.0`) | [GitHub releases](https://github.com/pangxueyuan2-creator/patchwitness/releases) |
-| Release asset downloads | 9 raw; external attribution UNKNOWN | [GitHub release API](https://api.github.com/repos/pangxueyuan2-creator/patchwitness/releases); maintainer verification downloads occurred and GitHub does not expose downloader identity, so none is counted as a real-user milestone |
+| Release asset downloads | 12 raw; external attribution UNKNOWN | [GitHub release API](https://api.github.com/repos/pangxueyuan2-creator/patchwitness/releases); maintainer verification downloads occurred and GitHub does not expose downloader identity, so none is counted as a real-user milestone |
 | Contributors reported by GitHub | 1 human maintainer + Dependabot | [GitHub contributors API](https://api.github.com/repos/pangxueyuan2-creator/patchwitness/contributors) |
 | External human contributors | 0 | Contributors API, excluding the owner and bot accounts |
 | Human issues | 0 | [GitHub issues](https://github.com/pangxueyuan2-creator/patchwitness/issues?q=is%3Aissue) |
@@ -41,6 +41,8 @@ primary or core maintainers, including pull request review, issue triage, and re
 | Internal GitHub Actions usage | 61 workflow runs: 55 successful, 6 failed, 0 other/in progress | [GitHub Actions](https://github.com/pangxueyuan2-creator/patchwitness/actions); these are maintenance automation, not external usage |
 | Repository security posture | Secret scanning and push protection enabled; Dependabot security updates enabled with 0 open alerts; active default-branch history-protection ruleset | [GitHub Security](https://github.com/pangxueyuan2-creator/patchwitness/security) and [Rules](https://github.com/pangxueyuan2-creator/patchwitness/settings/rules) |
 | Verified external GitHub Action usage | 0 found | [Exact GitHub code search](https://github.com/search?q=%22pangxueyuan2-creator%2Fpatchwitness%22&type=code) returned no external reference at capture time |
+| GitHub Marketplace | Public listing; adoption UNKNOWN | [PatchWitness Gate](https://github.com/marketplace/actions/patchwitness-gate) is installable from the Marketplace, but publication is a distribution surface rather than evidence of external usage |
+| GitHub traffic | 0 counted views; 0 counted clones in the available 14-day window | Repository traffic API checked by the maintainer; GitHub exposes this endpoint only to push-authorized users, so the value is recorded without claiming a public verification link |
 | Package registry | Not published on PyPI | [`patchwitness` PyPI JSON endpoint](https://pypi.org/pypi/patchwitness/json) returned 404 at capture time |
 | Package downloads | Registry: not applicable; external Release downloads: UNKNOWN | No package-registry publication; raw Release downloads cannot be attributed publicly |
 | External mentions | 3 verified maintainer-authored launch publications; 0 verified third-party mentions; exhaustive count UNKNOWN | [r/devops comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/), [DEV Community article](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88), and [X thread](https://x.com/jordyuout/status/2087162269738336713) publicly link the project or demo; none is counted as external adoption or validation |

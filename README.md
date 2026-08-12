@@ -9,6 +9,7 @@
 <p align="center">
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/releases"><img alt="Release" src="https://img.shields.io/github/v/release/pangxueyuan2-creator/patchwitness"></a>
+  <a href="https://github.com/marketplace/actions/patchwitness-gate"><img alt="GitHub Marketplace" src="https://img.shields.io/badge/GitHub_Marketplace-PatchWitness_Gate-2f81f7?logo=github"></a>
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/pangxueyuan2-creator/patchwitness?style=social"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   <a href="#60-second-demo-tests-pass-the-gate-fails"><img alt="Real demo" src="https://img.shields.io/badge/demo-60_seconds-55e6c1"></a>
@@ -19,7 +20,8 @@
 <p align="center">
   If independent verification for agent-authored patches belongs in the toolchain, try the
   <a href="#60-second-demo-tests-pass-the-gate-fails">60-second demo</a> and
-  <a href="https://github.com/pangxueyuan2-creator/patchwitness">star PatchWitness</a>.
+  <a href="https://github.com/marketplace/actions/patchwitness-gate">add PatchWitness Gate to CI</a>.
+  If it proves useful, <a href="https://github.com/pangxueyuan2-creator/patchwitness">star PatchWitness</a>.
   Real trial reports and technical criticism are even more valuable.
 </p>
 
