@@ -21,7 +21,7 @@ primary or core maintainers, including pull request review, issue triage, and re
 | Active maintenance | 5/10 | Three maintained releases, 20 main-branch commits, working automation, security hardening, and four reviewed dependency updates exist, all within the repository's first day; sustained maintenance is not yet established. |
 | Maintainer evidence | 5/10 | The owner authored the project, manages provenance-attested releases, merged four reviewed Dependabot pull requests, and completed both security-hardening and first-use adoption cycles. There is no external human PR review, issue triage, or security-response history yet. |
 | Technical quality | 8/10 | Cross-platform CI, CodeQL, tests, strict typing, a threat model, release artifacts, a real demo, and reproducible evidence are present. This score does not imply adoption. |
-| External validation | 0/10 | Three verified maintainer-authored external launch publications exist, but they are outreach rather than third-party validation. There is no external testimonial, issue, pull request, integration, or user report. |
+| External validation | 1/10 | One unaffiliated developer posted substantive public feedback on the threat model and asked where the gate belongs. This is useful external technical validation, but not a testimonial, trial, adoption, or user report. |
 
 ## Current evidence
 
@@ -48,7 +48,7 @@ primary or core maintainers, including pull request review, issue triage, and re
 | External mentions | 3 verified maintainer-authored launch publications; 0 verified third-party mentions; exhaustive count UNKNOWN | [r/devops comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/), [DEV Community article](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88), and [X thread](https://x.com/jordyuout/status/2087162269738336713) publicly link the project or demo; none is counted as external adoption or validation |
 | Discussions | 1 maintainer-authored launch announcement; 0 external discussions or replies | [GitHub Discussion #4](https://github.com/pangxueyuan2-creator/patchwitness/discussions/4) |
 | Other repositories integrated | 0 verified | Exact GitHub code search found no external action or CLI reference |
-| Real user feedback | 0 verified | No issue, discussion, PR, or linked public report from a non-maintainer |
+| External technical feedback | 1 verified comment; 0 verified trials | [Anas Rhimi's DEV comment](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j) independently identifies the self-reporting trust problem and asks whether PatchWitness belongs in CI or pre-PR. The commenter has a separate [public GitHub account](https://github.com/Mealiclay01). This is feedback, not proof of use, adoption, or endorsement. |
 
 ## Maintainer evidence
 

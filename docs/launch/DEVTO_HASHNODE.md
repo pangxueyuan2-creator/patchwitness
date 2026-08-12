@@ -170,7 +170,7 @@ Precise limitations matter more than ambitious labels.
 Install the current release from GitHub:
 
 ```bash
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.1.0/patchwitness-0.1.0-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
 ```
 
 Initialize a contract:
@@ -200,6 +200,9 @@ patchwitness contract new GH-123 \
 The most useful early adoption pattern is observation before enforcement: capture passports on a few
 real pull requests, inspect noise and missing evidence, then make the gate required only after the
 contract reflects the repository.
+
+For CI, PatchWitness Gate is also available on the
+[GitHub Marketplace](https://github.com/marketplace/actions/patchwitness-gate).
 
 ## What independent verification does not prove
 

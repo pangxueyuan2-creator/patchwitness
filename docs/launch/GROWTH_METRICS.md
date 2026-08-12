@@ -27,6 +27,7 @@ Refreshed 2026-08-12 03:40 UTC from GitHub repository, release, and traffic APIs
 | Counted repository clones | 0 | No clone is treated as adoption. |
 | GitHub Marketplace listing | 1 public listing | Distribution is ready; usage remains unknown. |
 | Verified external integrations | 0 | No public repository reference has been verified. |
+| External technical feedback | 1 comment | A non-maintainer discussed the threat model on the DEV article; no trial was claimed. |
 
 Marketplace publication and maintainer-authored promotion are reach mechanisms, not adoption
 evidence. The next valid milestone remains one non-maintainer trial with reproducible feedback.

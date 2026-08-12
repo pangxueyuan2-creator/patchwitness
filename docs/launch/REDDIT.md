@@ -6,6 +6,10 @@ once.
 
 ## r/opensource
 
+> Status on 2026-08-12: do not repost. The existing submission was automatically removed because
+> the Reddit account is under the community's one-year age requirement. Do not evade the rule with
+> another account or moderator solicitation.
+
 ### Title
 
 I built an Apache-2.0 trust gate for AI-generated patches; looking for evidence-schema feedback
@@ -149,6 +153,36 @@ tool the orchestrator calls, or a separate service the agent cannot modify? Conc
 experience would be more useful than stars.
 
 https://github.com/pangxueyuan2-creator/patchwitness
+
+## r/ChatGPTCoding weekly self-promotion thread
+
+### Comment
+
+I maintain PatchWitness, an Apache-2.0 independent verifier for patches produced by coding agents.
+
+Tools such as OpenAI Codex and ChatGPT have made agent-generated code dramatically more capable. The
+remaining trust problem is that an agent may change both the implementation and the controls that
+claim the implementation is safe.
+
+The reproducible demo contains a correct feature and a passing test, but also adds
+`continue-on-error: true` to GitHub Actions. The tests pass. PatchWitness still blocks the patch
+because the protected workflow changed outside the declared scope.
+
+PatchWitness derives the change set from Git, loads policy from the trusted base revision, executes
+real repository checks, and emits an offline-verifiable Change Passport. No LLM judges its own work.
+It is agent-neutral and provides a local CLI, GitHub Action, JSON/SARIF output, SDK, and MCP interface.
+
+Repository and 60-second demo:
+https://github.com/pangxueyuan2-creator/patchwitness
+
+GitHub Marketplace:
+https://github.com/marketplace/actions/patchwitness-gate
+
+I would value critical feedback from people using Codex, ChatGPT, Cline, Claude Code, Cursor, or
+autonomous coding workflows: would you use a separate verification layer before merging
+agent-authored changes, and what evidence would it need to produce?
+
+If you try it and genuinely find it useful, a star helps other developers discover it.
 
 ## Community etiquette
 
