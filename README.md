@@ -82,6 +82,15 @@ evidence instead of agent-authored prose.
 
 PatchWitness is currently distributed from GitHub:
 
+Run a structural scan in any Git repository with `uvx`—no permanent installation and no repository
+code execution:
+
+```bash
+uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl" patchwitness scan --no-checks
+```
+
+Or install the CLI for repeated use:
+
 ```bash
 # pipx
 pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
