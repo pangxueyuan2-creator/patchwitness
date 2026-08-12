@@ -1,7 +1,9 @@
 import json
 import os
+import shutil
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 from patchwitness.evidence import load_evidence, verify_evidence
@@ -51,8 +53,13 @@ require_tests = false
         "turn": {"outputText": secret_text, "status": "completed"},
     }
     hook = Path(__file__).parents[1] / "examples" / "cline-hooks" / "TaskComplete.py"
+    installed_executable = shutil.which("patchwitness")
     executable_name = "patchwitness.exe" if os.name == "nt" else "patchwitness"
-    patchwitness_executable = Path(sys.executable).parent / executable_name
+    patchwitness_executable = (
+        Path(installed_executable)
+        if installed_executable
+        else Path(sysconfig.get_path("scripts")) / executable_name
+    )
     assert patchwitness_executable.is_file()
     result = subprocess.run(
         [sys.executable, str(hook)],
