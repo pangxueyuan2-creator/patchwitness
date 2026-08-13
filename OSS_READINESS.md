@@ -2,9 +2,11 @@
 
 **Decision: NOT READY TO APPLY**
 
-Snapshot refreshed: **2026-08-12 04:36 UTC**. This file records public, source-verifiable evidence.
+Snapshot refreshed: **2026-08-13 07:51 UTC**. This file records public, source-verifiable evidence.
 Unknown values are not estimated. Maintainer runs, maintainer downloads, and bot activity are not
-counted as external adoption.
+counted as external adoption. The latest [Real Adoption Report](docs/adoption/REAL_ADOPTION_REPORT.md)
+and [adoption baseline](docs/adoption/baseline.md) document the refreshed raw data, new maintainer-built
+trial assets and the unchanged absence of verified external trials or integrations.
 
 The [official OpenAI application](https://openai.com/form/codex-for-oss/) says eligible projects are
 active open-source projects with meaningful usage, broad adoption, or clear ecosystem importance.
