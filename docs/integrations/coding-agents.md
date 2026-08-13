@@ -3,7 +3,19 @@
 PatchWitness is agent-neutral. Use the same workflow with Codex, ChatGPT, Cline, Claude Code,
 Cursor, Copilot, Aider, or a custom coding agent.
 
-For working local post-task examples that default to structural inspection and do **not** execute repository code, see [Claude Code safe hooks](../../examples/claude-code-hooks/README.md) and [GitHub Copilot CLI safe hooks](../../examples/copilot-cli-hooks/README.md). Both examples remain advisory; the protected CI job described below is the merge boundary.
+For working local post-task examples that default to structural inspection and do **not** execute repository code, see [Claude Code safe hooks](../../examples/claude-code-hooks/README.md), [GitHub Copilot CLI safe hooks](../../examples/copilot-cli-hooks/README.md), [Cline TaskComplete hook](cline.md), and the [Codex Stop hook](codex.md). All local examples remain advisory; the protected CI job described below is the merge boundary.
+
+## Current integration status
+
+| Agent surface | Status | Evidence boundary |
+| --- | --- | --- |
+| Claude Code | **VERIFIED** | Published safe-hook fixture and repository-local reproduction path; use protected CI for enforcement. |
+| GitHub Copilot CLI | **DOCUMENTED** | Safe cross-platform hook recipe is published; Windows execution remains a contributor-validation candidate. |
+| OpenAI Codex | **VERIFIED** | `tests/test_codex_hook.py` exercises the documented Stop-hook event against a Git fixture, verifies the Passport offline, and checks input minimization. See [Codex integration](codex.md). |
+| Cline | **VERIFIED** | `tests/test_cline_hook.py` executes the published `TaskComplete` adapter against a Git fixture and verifies its Passport offline. |
+| Aider | **DOCUMENTED** | Provider-neutral local `scan`/CI workflow applies; no native lifecycle-hook contract is asserted. |
+
+“Verified” means the referenced integration adapter or configuration boundary is exercised by a public, deterministic repository fixture. It does not mean the provider has endorsed PatchWitness, that a model-backed session is executed in CI, or that every provider version/platform is compatible.
 
 The integration has two layers:
 
