@@ -4,10 +4,17 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable release tag to verify and upload
+        required: true
+        type: string
 
 permissions:
   contents: write
   attestations: write
+  id-token: write
 
 jobs:
   verify-and-build:
@@ -16,12 +23,13 @@ jobs:
     permissions:
       contents: write
       attestations: write
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
@@ -30,7 +38,7 @@ jobs:
         shell: bash
         run: |
           version=$(python -c "import runpy; print(runpy.run_path('src/patchwitness/_version.py')['__version__'])")
-          test "v${version}" = "${{ github.ref_name }}"
+          test "v${version}" = "${{ inputs.tag || github.ref_name }}"
       - name: Install release validation tools
         run: python -m pip install --disable-pip-version-check -e ".[dev]"
       - name: Run complete quality gate
@@ -74,7 +82,7 @@ jobs:
       - name: Create or update GitHub Release assets
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         shell: bash
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
