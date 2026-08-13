@@ -14,7 +14,7 @@ Snapshot: 2026-08-12 04:36 UTC.
 | X | Live | [Launch thread](https://x.com/jordyuout/status/2087162269738336713); do not repeat without a substantive update. |
 | r/opensource | Removed by account-age filter | Do not repost or evade the one-year account rule. |
 | r/ChatGPTCoding weekly thread | Live | [Maintainer comment](https://www.reddit.com/r/ChatGPTCoding/comments/1vkehmk/comment/p36g7xn/) follows the weekly thread's disclosure and context rules; respond to genuine replies and do not repost this week. |
-| r/AI_Agents weekly project thread | Scheduled after 24 hours | Use a distinct agent-infrastructure draft in [REDDIT.md](REDDIT.md); do not ask for votes or post on the same day as r/ChatGPTCoding. |
+| r/AI_Agents weekly project thread | Live | [Maintainer-representative comment](https://www.reddit.com/r/AI_Agents/comments/1vmi8k6/weekly_thread_project_display/p3fvxwx/) posted on 2026-08-13 after the r/ChatGPTCoding spacing window. It discloses representation, describes the deterministic evidence boundary and limitations, and invites a local-only trial. Answer genuine replies; do not repost in this thread. |
 | DevTools Directory | Candidate; approval required | Submit one accurate `devops` tool YAML entry through the directory's documented PR process. |
 | AINative ecosystem | Candidate; approval required | Category fit is imperfect; ask maintainers before proposing a new security/evaluation category. |
 | PyPI | Not configured | Name is currently unclaimed, but publishing requires the maintainer's PyPI account and Trusted Publisher setup. |
