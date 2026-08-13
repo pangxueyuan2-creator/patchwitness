@@ -3,6 +3,8 @@
 PatchWitness is agent-neutral. Use the same workflow with Codex, ChatGPT, Cline, Claude Code,
 Cursor, Copilot, Aider, or a custom coding agent.
 
+For working local post-task examples that default to structural inspection and do **not** execute repository code, see [Claude Code safe hooks](../../examples/claude-code-hooks/README.md) and [GitHub Copilot CLI safe hooks](../../examples/copilot-cli-hooks/README.md). Both examples remain advisory; the protected CI job described below is the merge boundary.
+
 The integration has two layers:
 
 1. The agent runs a local scan for fast, advisory feedback.

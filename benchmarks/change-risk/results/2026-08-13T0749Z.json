@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-08-13T07:48:31.100830+00:00",
+  "tool": "PatchWitness CLI from PATH",
+  "method": "Each scenario uses a fresh temporary Git repository and loads policy from HEAD.",
+  "results": [
+    {
+      "scenario": {
+        "identifier": "A-allowed-product-change",
+        "description": "A scoped product change with the recorded check executing successfully.",
+        "changed_paths": [
+          "src/app.py"
+        ],
+        "no_checks": false,
+        "expected_status": "pass",
+        "required_rules": []
+      },
+      "capture_exit_code": 0,
+      "status": "pass",
+      "finding_rule_ids": [],
+      "checks_total": 1,
+      "checks_passed": 1
+    },
+    {
+      "scenario": {
+        "identifier": "B-tests-pass-ci-control-plane-change",
+        "description": "A product change plus a protected CI workflow edit; the recorded check still passes.",
+        "changed_paths": [
+          "src/app.py",
+          ".github/workflows/ci.yml"
+        ],
+        "no_checks": false,
+        "expected_status": "fail",
+        "required_rules": [
+          "PW003"
+        ]
+      },
+      "capture_exit_code": 0,
+      "status": "fail",
+      "finding_rule_ids": [
+        "PW002",
+        "PW003"
+      ],
+      "checks_total": 1,
+      "checks_passed": 1
+    },
+    {
+      "scenario": {
+        "identifier": "C-out-of-scope-change",
+        "description": "A change outside the approved product path.",
+        "changed_paths": [
+          "docs/readme.md"
+        ],
+        "no_checks": false,
+        "expected_status": "fail",
+        "required_rules": [
+          "PW002"
+        ]
+      },
+      "capture_exit_code": 0,
+      "status": "fail",
+      "finding_rule_ids": [
+        "PW002"
+      ],
+      "checks_total": 1,
+      "checks_passed": 1
+    },
+    {
+      "scenario": {
+        "identifier": "D-required-check-not-executed",
+        "description": "An allowed change captured with --no-checks even though the trusted policy requires a check.",
+        "changed_paths": [
+          "src/app.py"
+        ],
+        "no_checks": true,
+        "expected_status": "fail",
+        "required_rules": [
+          "PW020"
+        ]
+      },
+      "capture_exit_code": 0,
+      "status": "fail",
+      "finding_rule_ids": [
+        "PW020"
+      ],
+      "checks_total": 0,
+      "checks_passed": 0
+    },
+    {
+      "scenario": {
+        "identifier": "E-policy-self-modification",
+        "description": "An attempted working-tree policy modification while policy remains loaded from the trusted base.",
+        "changed_paths": [
+          ".patchwitness.toml"
+        ],
+        "no_checks": false,
+        "expected_status": "fail",
+        "required_rules": [
+          "PW003"
+        ]
+      },
+      "capture_exit_code": 0,
+      "status": "fail",
+      "finding_rule_ids": [
+        "PW002",
+        "PW003"
+      ],
+      "checks_total": 1,
+      "checks_passed": 1
+    }
+  ]
+}

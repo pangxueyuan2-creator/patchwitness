@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "./.github/hooks/patchwitness-safe-scan.sh",
+        "powershell": "./.github/hooks/patchwitness-safe-scan.ps1",
+        "cwd": ".",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}
