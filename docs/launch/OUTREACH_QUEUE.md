@@ -10,7 +10,7 @@ Snapshot: 2026-08-12 04:36 UTC.
 |---|---|---|
 | GitHub Marketplace | Live | [PatchWitness Gate](https://github.com/marketplace/actions/patchwitness-gate); listing is distribution, not adoption. |
 | r/devops weekly self-promotion | Live | [Maintainer comment](https://www.reddit.com/r/devops/comments/1vkd20a/comment/p303xwh/); answer genuine replies, do not repost this week. |
-| DEV Community | Live; one external technical comment; maintainer replied | [Question](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j) and [maintainer reply](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3cp2p); answer any genuine follow-up. |
+| DEV Community | Live; one external technical comment; maintainer replied | [Question](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j) and [maintainer reply](https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3cp2p); the public installation command was corrected to the current `v0.2.1` wheel on 2026-08-13. Answer any genuine follow-up. |
 | X | Live | [Launch thread](https://x.com/jordyuout/status/2087162269738336713); do not repeat without a substantive update. |
 | r/opensource | Removed by account-age filter | Do not repost or evade the one-year account rule. |
 | r/ChatGPTCoding weekly thread | Live | [Maintainer comment](https://www.reddit.com/r/ChatGPTCoding/comments/1vkehmk/comment/p36g7xn/) follows the weekly thread's disclosure and context rules; respond to genuine replies and do not repost this week. |
