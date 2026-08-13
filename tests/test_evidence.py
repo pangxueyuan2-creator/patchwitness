@@ -47,3 +47,21 @@ def test_untracked_files_are_included(tmp_path: Path) -> None:
     (root / "new.py").write_text("value = 1\n", encoding="utf-8")
     pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
     assert [item["path"] for item in pack.changes] == ["new.py"]
+
+
+def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    outside = tmp_path.parent / "outside-secret.txt"
+    token = "sk-" + "abcdefghijklmnopqrstuvwxyz0123456789"
+    outside.write_text(f"token = '{token}'\n", encoding="utf-8")
+    link = root / "outside-link.txt"
+    try:
+        link.symlink_to(outside)
+    except OSError as exc:
+        pytest.skip(f"symlinks are unavailable in this test environment: {exc}")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    assert [item["path"] for item in pack.changes] == ["outside-link.txt"]
+    assert pack.changes[0]["after_sha256"] is None
+    assert not any(finding["rule_id"] == "PW030" for finding in pack.findings)

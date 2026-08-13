@@ -6,6 +6,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
+from patchwitness.git import safe_regular_file
 from patchwitness.models import FileChange, Finding, Severity
 
 MAX_SCAN_BYTES = 2_000_000
@@ -29,7 +30,9 @@ def scan_changed_files(root: Path, changes: Iterable[FileChange]) -> tuple[Findi
     for change in changes:
         if change.binary or change.after_sha256 is None:
             continue
-        path = root / change.path
+        path = safe_regular_file(root, change.path)
+        if path is None:
+            continue
         try:
             if path.stat().st_size > MAX_SCAN_BYTES:
                 continue
