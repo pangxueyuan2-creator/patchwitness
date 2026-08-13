@@ -54,3 +54,9 @@ The documented DevTools Directory candidate was audited at https://github.com/Ka
 The public DEV Community article at https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88 was authenticated as editable by its author and corrected after explicit user confirmation. The only content change was the wheel-installation URL in the “Trying it on an existing repository” section: `v0.2.0/patchwitness-0.2.0-py3-none-any.whl` became `v0.2.1/patchwitness-0.2.1-py3-none-any.whl`. The published article now renders the `v0.2.1` URL and marks the post as edited on 2026-08-13. No other article content, metadata, tags, or public claims were changed.
 
 **Next implication:** external readers now receive the current release artifact from the article’s copy-paste path. Continue to monitor the existing technical discussions for genuine trial signals; do not create a duplicate promotion.
+
+## Cycle 4 — v0.2.1 first-run validation
+
+The exact public `v0.2.1` release-wheel path was exercised in a disposable synthetic Git repository: `uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl" patchwitness --version`, `patchwitness doctor`, and `patchwitness scan --no-checks`. The release identified itself as `patchwitness 0.2.1`; `doctor` reported `READY`; the structural scan passed for a one-file working-tree change, emitted a Change Passport, and required no API key, source upload, CI configuration, or repository-owned test execution. This is maintainer-run compatibility evidence, not an external trial.
+
+A public GitHub code search for the unique project repository identifier found only third-party aggregation of repository metadata and a dataset copy of the existing Reddit post; it found no non-maintainer workflow, configuration, or trial report. The verified external-adopter count therefore remains zero.
