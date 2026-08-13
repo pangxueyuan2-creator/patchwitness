@@ -245,7 +245,10 @@ def main() -> int:
             env=env,
         )
         if gate.returncode != 1:
-            raise RuntimeError(f"expected PatchWitness to block the patch, got {gate.returncode}")
+            gate_details = (gate.stdout + gate.stderr).strip()
+            raise RuntimeError(
+                f"expected PatchWitness to block the patch, got {gate.returncode}:\n{gate_details}"
+            )
 
         evidence = json.loads(passport.read_text(encoding="utf-8"))
         rules = {finding["rule_id"] for finding in evidence["findings"]}

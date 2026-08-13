@@ -42,6 +42,7 @@ def clean_room(root: Path, base_revision: str) -> Iterator[Path]:
                 "-C",
                 str(root),
                 "diff",
+                "--no-color",
                 "--binary",
                 "--full-index",
                 "--no-ext-diff",
@@ -56,7 +57,7 @@ def clean_room(root: Path, base_revision: str) -> Iterator[Path]:
             raise CleanRoomError(f"cannot capture repository patch: {detail}")
         if patch.stdout:
             applied = subprocess.run(
-                ["git", "-C", str(worktree), "apply", "--binary", "--whitespace=nowarn", "-"],
+                ["git", "-C", str(worktree), "apply", "--binary", "--whitespace=nowarn"],
                 input=patch.stdout,
                 capture_output=True,
                 check=False,
