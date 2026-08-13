@@ -8,7 +8,7 @@
 | Recommended | You have reviewed a contract and normal project tests. | Trusted-base policy plus declared checks in a disposable hook-disabled worktree. |
 | Strict | You need a separately auditable evidence artifact and stronger failure visibility. | Recommended enforcement plus retained JSON evidence and explicit required-check guidance. |
 
-Every profile uses `pull_request`, read-only `contents` permission, full history, `persist-credentials: false`, and the pull request's immutable **base SHA** for both the comparison base and authoritative policy source. Replace the Action reference with the reviewed commit SHA for each upgrade; the current published v0.2.0 reference is `f95f84dbb35ce0e7d153e83503294d742275f3c5`.
+Every profile uses `pull_request`, read-only `contents` permission, full history, `persist-credentials: false`, and the pull request's immutable **base SHA** for both the comparison base and authoritative policy source. Replace the Action reference with the reviewed commit SHA for each upgrade; the current published v0.2.1 reference is `42a5e9b7f5582c37d952be6b1e4b7b1f57600163`.
 
 > A Change Passport is review evidence, not a semantic-correctness proof. It records the policy, real command outcomes, changed paths and integrity data that the job observed. Protect the branch, policy and workflow separately with review rules and CODEOWNERS.
 
@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: pangxueyuan2-creator/patchwitness@f95f84dbb35ce0e7d153e83503294d742275f3c5 # v0.2.0
+      - uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
         with:
           base: ${{ github.event.pull_request.base.sha }}
           policy-ref: ${{ github.event.pull_request.base.sha }}
@@ -66,7 +66,7 @@ jobs:
           python-version: "3.13"
       # Add the target repository's own documented dependency-install step here.
       # Example for PatchWitness itself: python -m pip install --disable-pip-version-check -e ".[dev]"
-      - uses: pangxueyuan2-creator/patchwitness@f95f84dbb35ce0e7d153e83503294d742275f3c5 # v0.2.0
+      - uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
         with:
           base: ${{ github.event.pull_request.base.sha }}
           policy-ref: ${{ github.event.pull_request.base.sha }}
@@ -104,7 +104,7 @@ jobs:
       # Example for PatchWitness itself: python -m pip install --disable-pip-version-check -e ".[dev]"
       - name: Enforce trusted-base contract
         id: patchwitness
-        uses: pangxueyuan2-creator/patchwitness@f95f84dbb35ce0e7d153e83503294d742275f3c5 # v0.2.0
+        uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
         with:
           base: ${{ github.event.pull_request.base.sha }}
           policy-ref: ${{ github.event.pull_request.base.sha }}

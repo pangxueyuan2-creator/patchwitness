@@ -47,9 +47,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Install project test dependencies
-        run: python -m pip install -e ".[test]"
-      - uses: pangxueyuan2-creator/patchwitness@fa5e2ede4aded18c6c2647e21ad53bc92c4cfb6e # v0.2.0
+      # Add the target repository's documented dependency-install step here.
+      # PatchWitness itself uses: python -m pip install --disable-pip-version-check -e ".[dev]"
+      - uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
         with:
           base: ${{ github.event.pull_request.base.sha }}
           policy-ref: ${{ github.event.pull_request.base.sha }}

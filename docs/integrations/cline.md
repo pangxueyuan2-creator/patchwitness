@@ -10,7 +10,7 @@ each Git workspace.
 Install PatchWitness first:
 
 ```bash
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
 ```
 
 Copy the hook from a PatchWitness checkout:

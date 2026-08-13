@@ -98,17 +98,17 @@ Run a structural scan in any Git repository with `uvx`—no permanent installati
 code execution:
 
 ```bash
-uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl" patchwitness scan --no-checks
+uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl" patchwitness scan --no-checks
 ```
 
 Or install the CLI for repeated use:
 
 ```bash
 # pipx
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
 
 # or uv
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.0/patchwitness-0.2.0-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
 ```
 
 Run one command inside any existing Git repository:
@@ -247,7 +247,7 @@ patchwitness report evidence.json --format sarif --output patchwitness.sarif
 Put the same trusted-base gate on every pull request:
 
 ```yaml
-- uses: pangxueyuan2-creator/patchwitness@v0.2.0
+- uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
   with:
     base: ${{ github.event.pull_request.base.sha }}
     policy-ref: ${{ github.event.pull_request.base.sha }}
@@ -385,7 +385,7 @@ high-risk repositories.
 
 ## Project status
 
-`v0.2.0` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
+`v0.2.1` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
 [ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
 estimates in [OSS_READINESS.md](OSS_READINESS.md).
