@@ -42,3 +42,9 @@ The confirmed comment has now been entered into the authenticated top-level edit
 The comment was published successfully from `u/Any-Article-6402` and appeared as the newest top-level comment in the target thread. The published record is available at [r/AI_Agents Weekly Thread: Project Display — PatchWitness comment](https://www.reddit.com/r/AI_Agents/comments/1vmi8k6/weekly_thread_project_display/p3fvxwx/). The browser’s public thread view confirmed the complete message, maintainer disclosure, repository link, bounded capability statement, and safe-trial invitation. No adoption or trial claim was made.
 
 **Next implication:** monitor this comment for genuine technical questions, installation attempts, or trial outcomes. Do not repost in the same thread. Continue work on distinct, independently justified evidence or maintenance opportunities.
+
+## Cycle 2 — baseline refresh and directory audit
+
+Authoritative GitHub endpoints were recollected after the `v0.2.1` release: 1 star, 0 forks, 1 watcher, 1 open issue, 2 contributors, 4 releases, 52 cumulative release-asset downloads, 51 views / 10 unique visitors, and 362 clones / 69 unique cloners across the reported 14-day windows. The growth baseline has been corrected to reflect this collection; downloads and clones remain non-adoption signals under the document’s existing interpretation boundary.
+
+The documented DevTools Directory candidate was audited at https://github.com/Kawhooped/devtools-directory. The public repository has only a one-line README, no submission schema or contribution guidance, no open pull requests, and an unanswered example submission issue stating that mapping is pending publication of a schema. No contribution was made: creating a speculative issue or PR would not be technically grounded and would not satisfy the project’s anti-spam rule. Reassess only if the directory publishes an explicit format or maintainer response.

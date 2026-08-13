@@ -15,7 +15,7 @@ Snapshot: 2026-08-12 04:36 UTC.
 | r/opensource | Removed by account-age filter | Do not repost or evade the one-year account rule. |
 | r/ChatGPTCoding weekly thread | Live | [Maintainer comment](https://www.reddit.com/r/ChatGPTCoding/comments/1vkehmk/comment/p36g7xn/) follows the weekly thread's disclosure and context rules; respond to genuine replies and do not repost this week. |
 | r/AI_Agents weekly project thread | Live | [Maintainer-representative comment](https://www.reddit.com/r/AI_Agents/comments/1vmi8k6/weekly_thread_project_display/p3fvxwx/) posted on 2026-08-13 after the r/ChatGPTCoding spacing window. It discloses representation, describes the deterministic evidence boundary and limitations, and invites a local-only trial. Answer genuine replies; do not repost in this thread. |
-| DevTools Directory | Candidate; approval required | Submit one accurate `devops` tool YAML entry through the directory's documented PR process. |
+| DevTools Directory | Deferred — no public schema | The audited [directory repository](https://github.com/Kawhooped/devtools-directory) currently exposes no contribution guide or submission schema, and its open sample submission says schema mapping is pending. Do not create a speculative issue or PR; reassess only after the maintainers publish a format or reply. |
 | AINative ecosystem | Candidate; approval required | Category fit is imperfect; ask maintainers before proposing a new security/evaluation category. |
 | PyPI | Not configured | Name is currently unclaimed, but publishing requires the maintainer's PyPI account and Trusted Publisher setup. |
 

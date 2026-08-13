@@ -10,11 +10,11 @@
 | Stars | 1 | GitHub repository API snapshot |
 | Forks | 0 | GitHub repository API snapshot |
 | Watchers | 1 | GitHub repository API snapshot |
-| Open issues | 0 | GitHub repository API snapshot |
+| Open issues | 1 | GitHub repository API snapshot |
 | Contributors | 2 | GitHub contributors endpoint |
-| Releases | 3 | GitHub releases endpoint |
-| Latest release | `v0.2.0` | Published 2026-08-11 |
-| Release asset downloads | 14 | Sum from the releases endpoint at collection time |
+| Releases | 4 | GitHub releases endpoint |
+| Latest release | `v0.2.1` | Published 2026-08-13 |
+| Release asset downloads | 52 | Sum from the releases endpoint at collection time |
 | Views | 51 | GitHub Traffic, preceding 14 days |
 | Unique visitors | 10 | GitHub Traffic, preceding 14 days |
 | Clones | 362 | GitHub Traffic, preceding 14 days |
