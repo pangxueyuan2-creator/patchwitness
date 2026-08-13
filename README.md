@@ -63,6 +63,18 @@ See the [five-minute reproduction](demo/README.md), the committed
 [real terminal transcript](demo/artifacts/terminal-output.txt), and the
 [generated Change Passport](demo/artifacts/risk-change-passport.json).
 
+### Try without executing repository code
+
+If you want to inspect a **trusted** repository before allowing any detected test command to run, start with the structural path below. It reads Git and repository metadata, writes a Change Passport, and does not execute the repository's tests or scripts:
+
+```bash
+cd your-repository
+patchwitness doctor
+patchwitness scan --no-checks
+```
+
+`doctor` shows the detected stack and the next recommended command. Only run `patchwitness scan` with checks after reviewing the detected command and deciding that executing the repository code is appropriate for your environment.
+
 ## The trust boundary coding agents are missing
 
 | Question reviewers ask | PatchWitness evidence source |
