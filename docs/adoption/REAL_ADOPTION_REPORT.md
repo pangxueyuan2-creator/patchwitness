@@ -1,6 +1,6 @@
 # Real Adoption Report
 
-**Report timestamp:** 2026-08-13T09:30:00Z
+**Report timestamp:** 2026-08-13T10:05:00Z
 **Repository revision assessed:** [`4c62b50af201ff09583e319439066912560d96c7`](https://github.com/pangxueyuan2-creator/patchwitness/commit/4c62b50af201ff09583e319439066912560d96c7)
 **Decision:** **NOT READY TO APPLY** for OpenAI Codex for Open Source.
 
@@ -59,19 +59,23 @@ The highest-value next outcome is not more product construction. It is one real 
 | External code search | 2 raw matches | Discovery/indexing signal | No verified external Action or CLI integration. |
 | PyPI project | JSON and simple endpoints return 404 | Not published | No registry downloads can be counted. |
 | Show HN submission | 0 stories created | Platform restriction | The account was redirected to HN's temporary Show HN limitation page; no retry was made. |
+| r/ClaudeAI technical reply | [Comment `p3ewuta`][4] is publicly reachable (HTTP 200), authored by the maintainer account and timestamped 2026-08-13 | `OWNER-GENERATED / MAINTAINER PUBLIC ACTIVITY` | The public record is not an External Trial, Integration, Recommendation or Adoption. Reddit’s dynamic rendering exposed a blank automated body at capture time, so body equality is `UNKNOWN`; no non-maintainer reply was visible. |
 
 ## External-action boundary
 
 The maintainer explicitly authorized one Show HN submission. The approved title and text were entered and the submit control was used, but Hacker News redirected to its temporary Show HN restriction page. No public story exists, no alternate community post was substituted, and no retry occurred. This is an account/platform eligibility outcome, not a product failure and not external adoption evidence.
 
-No third-party repository outreach was attempted. The project will not manufacture traction through unsolicited marketing, self-authored claims or low-value issues.
+No third-party repository outreach was attempted. On 2026-08-13, after an exact-content confirmation and same-day rule check, the maintainer published one disclosed technical reply in an existing r/ClaudeAI thread about independently verifying unattended coding-agent runs.[4] The direct record, author, timestamp and reachability were verified. It is classified only as `OWNER-GENERATED / MAINTAINER PUBLIC ACTIVITY`; dynamic Reddit rendering did not expose its body to automated verification, and no non-maintainer reply was visible at the initial check. No repeat comment, upvote request, cross-post or follow-up outreach is planned.
+
+The project will not manufacture traction through unsolicited marketing, self-authored claims or low-value issues.
 
 ## Next highest-value action
 
-Do not add non-essential engineering features. Wait for a real, independently chosen trial or for a contributor to act on Issue #9; respond with prompt, evidence-based triage when that occurs. If a later public action becomes appropriate, recheck that venue's rules and request a fresh immediate confirmation for the exact content and account action.
+Do not add non-essential engineering features or additional public promotion. Monitor only for a real, independently chosen trial, integration, Trial Report, external Issue/PR/contribution, or a non-maintainer reply to the published r/ClaudeAI comment. Respond with prompt, evidence-based triage when that occurs. If a later external action becomes appropriate, recheck that venue's rules and request a fresh immediate confirmation for the exact content and account action.
 
 ## References
 
 [1]: https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j "External technical feedback on DEV"
 [2]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31684834028 "Latest PatchWitness CI"
 [3]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31684834026 "Latest PatchWitness CodeQL"
+[4]: https://www.reddit.com/r/ClaudeAI/comments/1udrmrb/comment/p3ewuta/ "Maintainer-disclosed r/ClaudeAI technical reply"
