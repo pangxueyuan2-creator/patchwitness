@@ -42,7 +42,7 @@ jobs:
 
 ## 2. Recommended: required CI policy and checks
 
-Install every dependency used by the **committed base contract** before calling PatchWitness. The Action does not guess or install a target repository's test dependencies. `clean-room: "true"` executes checks in a disposable base-derived Git worktree with repository hooks disabled during materialization.
+Install every dependency used by the **committed base contract** before calling PatchWitness. The Action does not guess or install a target repository's test dependencies, so use that repository's own documented setup command; do **not** treat `.[test]` as a universal extra. For PatchWitness itself, the real development dependency path is `python -m pip install --disable-pip-version-check -e ".[dev]"`. `clean-room: "true"` executes checks in a disposable base-derived Git worktree with repository hooks disabled during materialization.
 
 ```yaml
 name: PatchWitness
@@ -64,8 +64,8 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
-      - name: Install project test dependencies
-        run: python -m pip install --disable-pip-version-check -e ".[test]"
+      # Add the target repository's own documented dependency-install step here.
+      # Example for PatchWitness itself: python -m pip install --disable-pip-version-check -e ".[dev]"
       - uses: pangxueyuan2-creator/patchwitness@f95f84dbb35ce0e7d153e83503294d742275f3c5 # v0.2.0
         with:
           base: ${{ github.event.pull_request.base.sha }}
@@ -100,8 +100,8 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
-      - name: Install project test dependencies
-        run: python -m pip install --disable-pip-version-check -e ".[test]"
+      # Add the target repository's own documented dependency-install step here.
+      # Example for PatchWitness itself: python -m pip install --disable-pip-version-check -e ".[dev]"
       - name: Enforce trusted-base contract
         id: patchwitness
         uses: pangxueyuan2-creator/patchwitness@f95f84dbb35ce0e7d153e83503294d742275f3c5 # v0.2.0

@@ -5,6 +5,14 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-13
+
+### Fixed
+
+- Fixed clean-room verification of committed pull-request diffs by removing the invalid positional `-` argument from the `git apply` invocation shipped in v0.2.0.
+- Added a committed base-to-HEAD clean-room gate regression test that requires evidence generation and offline verification.
+- Corrected GitHub Action guidance so dependency installation is explicitly target-repository-specific; PatchWitness's own example now uses its real `.[dev]` extra.
+
 ### Added
 
 - Added a Cline `TaskComplete.py` integration that captures a structural Change Passport after a
@@ -93,7 +101,8 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Typed Python SDK, analyzer entry points, and stdio MCP tools.
 - Cross-platform CLI, Docker image, composite GitHub Action, CI, tests, and real benchmark harness.
 
-[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pangxueyuan2-creator/patchwitness/releases/tag/v0.1.0
