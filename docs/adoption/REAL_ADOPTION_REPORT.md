@@ -1,45 +1,45 @@
 # Real Adoption Report
 
-**Report timestamp:** 2026-08-13T07:51:27Z
-**Repository revision assessed:** `09c4b841104b0adb946a2cf4f8d8a993c40476c6`
+**Report timestamp:** 2026-08-13T09:30:00Z
+**Repository revision assessed:** [`4c62b50af201ff09583e319439066912560d96c7`](https://github.com/pangxueyuan2-creator/patchwitness/commit/4c62b50af201ff09583e319439066912560d96c7)
 **Decision:** **NOT READY TO APPLY** for OpenAI Codex for Open Source.
 
-This report uses the evidence definitions in [the adoption baseline](baseline.md). It does not treat maintenance work, generated examples, raw downloads, aggregate traffic, directories, crawlers or maintainer-authored posts as external use.
+This report uses the evidence definitions in [the adoption baseline](baseline.md). It does not treat maintainer commits, generated examples, raw downloads, aggregate traffic, marketplace availability, directories, crawlers, maintainer-authored posts or a public Issue as external use.
 
 ## Executive conclusion
 
-PatchWitness is now easier for a non-maintainer to inspect and try safely, and it has a versioned evidence system for recording future trials. The project has **not** yet obtained a verified non-maintainer Demo run, external Trial Report, external repository integration, external human contribution, external human PR or independent recommendation. The highest-value next outcome is therefore not more product construction: it is one real maintainer or developer running the public trial path and leaving an honest, permissioned report.
+PatchWitness is safer, more release-ready, and more usable in agent/CI workflows than at the previous snapshot. It has a fixture-verified Codex adapter, a trusted-release pipeline, an explicit contribution path and one bounded public contribution request. It has **not** obtained a verified non-maintainer Demo run, external Trial Report, external repository integration, external human contribution, external human PR or independent recommendation.
+
+The highest-value next outcome is not more product construction. It is one real maintainer or developer choosing to run the public trial path and leaving an honest, permissioned report.
 
 | Readiness dimension | Current score | Evidence-based assessment |
-|---|---:|---|
+| --- | ---:| --- |
 | Meaningful usage | 0/10 | No verified external Demo, repository run, Trial Report, integration or dependent. |
-| Broad adoption | 0/10 | The only raw Star and subscriber belong to the maintainer; no forks or external human contributors. |
-| Ecosystem importance | 2/10 | The project addresses a concrete agent-patch verification boundary and now has provider-specific hook examples, but no external project depends on them. |
-| Active maintenance | 5/10 | Versioned documentation, tests, CI, CodeQL, real Demo fixes and adoption evidence infrastructure exist; sustained time-based maintenance is not yet demonstrated. |
-| Maintainer evidence | 5/10 | Owner has released, reviewed dependency maintenance and created security/maintenance assets; no external human triage or PR review cycle exists yet. |
-| Technical quality | 8/10 | Cross-platform CI, CodeQL, strict checks, real Demo, trusted-base policy, clean-room support, reproducible risk scenarios and documented boundaries are present. This does not imply adoption. |
-| External validation | 1/10 | One distinct public technical comment challenges the trust-model placement; it is feedback, not a trial or testimonial.[1] |
+| Broad adoption | 0/10 | One raw star and subscriber belong to the maintainer; zero forks and zero external human contributors. |
+| Ecosystem importance | 2/10 | The project addresses a concrete agent-patch verification boundary and now has fixture-verified Codex plus Cline/Copilot/Claude integration assets, but no external project depends on them. |
+| Active maintenance | 6/10 | Security fix, release hardening, integration fixture, CI/CodeQL and contribution maintenance are present; sustained time-based maintenance is not yet demonstrated. |
+| Maintainer evidence | 6/10 | The owner merged reviewed changes, runs quality/release controls and opened one real contribution task; no external human triage or PR review cycle exists yet. |
+| Technical quality | 8/10 | Cross-platform CI, CodeQL, strict checks, trusted-base policy, clean-room support, reproducible Demo, change-risk scenarios and release validation are present. This does not imply adoption. |
+| External validation | 1/10 | One distinct public technical comment is feedback, not a trial, testimonial, endorsement or adoption. [1] |
 
-## Completed
+## Completed repository work
 
 | Work item | Verifiable result | Classification |
-|---|---|---|
-| Real baseline | Versioned [`baseline.md`](baseline.md) records UTC, API-backed repository/traffic/release data, attribution limits, external code-reference review and evidence levels. | `OWNER_GENERATED` measurement infrastructure |
-| Safer first trial | README now exposes `patchwitness doctor` plus `patchwitness scan --no-checks` directly after the Demo. The pathway was timed against the public repository: Demo 500 ms, doctor 141 ms, structural scan 179 ms after command invocation. | `OWNER_GENERATED` product documentation; not external use |
-| Honest feedback system | Trial Report form, privacy guidance, adoption index, growth log, external-adopter ledger and external-mention ledger are in version control. | `OWNER_GENERATED` maintenance infrastructure |
-| Target research | [`target-projects.md`](target-projects.md) covers 35 active coding-agent, CI, MCP and supply-chain candidates with scores and strict contact gates. | `OWNER_GENERATED` research; not outreach or adoption |
-| Reproducible agent integration assets | Executable advisory local hook examples for Claude Code and Copilot CLI default to `--no-checks`; Bash variants were run locally and generated verifiable Passports. | `OWNER_GENERATED` example assets |
-| Change-risk benchmark | Five fresh trusted-base fixtures produce one permitted pass and four intentional failures for protected CI, out-of-scope change, missing required check and policy self-modification. Raw results are committed under [`benchmarks/change-risk`](../../benchmarks/change-risk/). | `OWNER_GENERATED` reproducible evidence |
-| Quality validation | Local run: 53 tests passed; Ruff passed; risk benchmark passed. Latest main CI and CodeQL passed for the report revision.[2] [3] | `OWNER_GENERATED` quality evidence |
-| Periodic audit | A 48-hour read-only adoption audit is active until 2026-09-13 UTC. It is instructed to classify signals and never publish or contact users. | `OWNER_GENERATED` operational control |
+| --- | --- | --- |
+| Symlink trust-boundary fix | Change Passport hashing and secret scanning reject untracked symlinks that resolve outside the repository; regression test added. | `OWNER_GENERATED` security improvement |
+| Trusted release pipeline | Tag workflow runs tests, Ruff, mypy, Demo, benchmark, build, Twine, clean install, SHA-256, provenance and optional OIDC PyPI publication with separate least-privilege job. | `OWNER_GENERATED` release hardening |
+| Codex integration | Public `Stop` hook adapter and `tests/test_codex_hook.py` verify a trusted-base structural Passport, `PW003`, input minimization and offline evidence integrity. | `OWNER_GENERATED` fixture-verified integration |
+| GitHub Action productization | Minimal, recommended and strict templates document full-SHA pins, least privilege, artifact handling and fork-PR / `pull_request_target` boundary. | `OWNER_GENERATED` integration UX |
+| Contribution path | [CONTRIBUTING.md](../../CONTRIBUTING.md) provides clone, dev install, tests, Ruff, mypy, Demo, benchmark, fixture, documentation, security and PR steps. | `OWNER_GENERATED` onboarding |
+| Real contribution task | [Issue #9](https://github.com/pangxueyuan2-creator/patchwitness/issues/9) validates the untested Windows Copilot CLI PowerShell path with sanitized evidence. | `OWNER_GENERATED` contribution opportunity; not a contribution |
+| Quality validation | `make release-check` passed: 56 tests, coverage, Ruff, mypy, Demo, five-scenario benchmark, build, Twine and clean-wheel installation. Latest main CI and CodeQL passed. [2] [3] | `OWNER_GENERATED` quality evidence |
 
 ## Verified external evidence
 
 | Evidence | Level | What it proves | What it does not prove |
-|---|---:|---|---|
+| --- | ---:| --- | --- |
 | [Public DEV technical comment][1] from a distinct public developer | External feedback only | An independent developer engaged with the self-reporting trust problem and asked where the gate belongs. | Demo run, installation, adoption, recommendation or endorsement. |
-| [Trendshift repository index][4] | None | A third-party discovery service indexed PatchWitness and displayed a maintainer-authored X post. | Any independent use or validation. |
-| [`ai-trends` metadata record][5] and [`repo-dashboard` data record][6] | None | Third-party datasets contain PatchWitness-related metadata/community data. | Runtime use, workflow integration or endorsement. |
+| Third-party discovery/index entries | None | The repository is discoverable. | Runtime use, workflow integration or validation. |
 
 **Verified external adoption count:** 0.
 **Verified external Trial Reports:** 0.
@@ -49,48 +49,29 @@ PatchWitness is now easier for a non-maintainer to inspect and try safely, and i
 
 ## Current raw signals and classification
 
-| Signal at 2026-08-13T07:34:30Z | Raw value | Classification | Treatment |
-|---|---:|---|---|
-| Stars | 1 | `OWNER_GENERATED` | Excluded from external adoption. |
-| Forks | 0 | — | No adoption inference. |
-| Subscriber watchers | 1 | `OWNER_GENERATED` | Excluded from external adoption. |
-| Views / unique visitors, trailing 14 days | 51 / 10 | `UNKNOWN` | Aggregated discovery signal only. |
-| Clones / unique cloners, trailing 14 days | 362 / 69 | `UNKNOWN` | Not attributable to actual users; may include automated or repeated traffic. |
-| Release asset downloads | 14 | `UNKNOWN` | No downloader identity; not counted. |
-| Human Issues / external human PRs | 0 / 0 | — | Dependabot activity excluded. |
-| Public external code references | 2 | Third-party indexing | Reviewed and excluded from adoption. |
+| Signal at 2026-08-13 | Raw value | Classification | Treatment |
+| --- | ---:| --- | --- |
+| Stars / forks / subscribers | 1 / 0 / 1 | Maintainer-owned or absent | Excluded from external adoption. |
+| Published GitHub Releases | 3 (`v0.1.0`, `v0.1.1`, `v0.2.0`) | Distribution surface | Not a user count. |
+| Release asset downloads | 14 total raw downloads | `UNKNOWN` | GitHub does not disclose downloader identity; excluded. |
+| Human contributors | 1 maintainer; 0 external | `OWNER_GENERATED` | Dependabot excluded. |
+| Public Issues | 1, Issue #9 | Maintainer-created opportunity | Not a user signal. |
+| External code search | 2 raw matches | Discovery/indexing signal | No verified external Action or CLI integration. |
+| PyPI project | JSON and simple endpoints return 404 | Not published | No registry downloads can be counted. |
+| Show HN submission | 0 stories created | Platform restriction | The account was redirected to HN's temporary Show HN limitation page; no retry was made. |
 
-## Prepared but not published
+## External-action boundary
 
-| Asset | Status | Rationale |
-|---|---|---|
-| [Show HN final draft](show-hn-final.md) | Ready for review; not posted | It uses the real Demo and benchmark, declares limitations and asks for technical criticism rather than votes. |
-| [Contribution candidate drafts](contribution-candidates.md) | Ready; no Issues created | Prevents activity-seeking Issues; each task has real scope and acceptance criteria. |
-| Narrow Claude/Copilot hook examples | Published in repository; not submitted to third-party projects | They are verified local assets but do not yet justify approaching any project without a relevant invited route. |
-| 35-project relevance map | Published in repository; no contacts sent | A target score is never contact permission. |
+The maintainer explicitly authorized one Show HN submission. The approved title and text were entered and the submit control was used, but Hacker News redirected to its temporary Show HN restriction page. No public story exists, no alternate community post was substituted, and no retry occurred. This is an account/platform eligibility outcome, not a product failure and not external adoption evidence.
 
-## Blocked by permission or external choice
-
-| Item | Status | Required next condition |
-|---|---|---|
-| Show HN submission | Blocked pending explicit confirmation immediately before public posting | Maintainer confirms final text, account use and posting time. |
-| Reddit / DEV / Hashnode publication | Blocked pending explicit confirmation and same-day community rule review | One tailored technical post per allowed venue; no cross-post automation. |
-| Third-party repository outreach | Not started by design | A real tested integration artifact plus a maintainer-invited channel or an active relevant discussion. |
-| External trials and integrations | Not controllable by maintainer | Independent users must choose to run the tool and provide permissioned evidence. |
-
-## Failed or intentionally not claimed
-
-No engineering quality gate failed in this sprint after the final corrections. The initial change-risk benchmark failed once because the benchmark’s TOML command string was incorrectly escaped; the error was fixed, then the full five-scenario benchmark, 53 project tests and Ruff all passed. This report does **not** count any of the following as success: prepared copy, owner uploads, maintainer downloads, crawler indexing, raw clones, raw release downloads, Dependabot PRs or repository examples.
+No third-party repository outreach was attempted. The project will not manufacture traction through unsolicited marketing, self-authored claims or low-value issues.
 
 ## Next highest-value action
 
-Request approval to submit the prepared **single Show HN post** only after a final same-day guidelines check. It is the most appropriate first public surface because the repository has a runnable, no-registration Demo, a reproducible change-risk scenario and a maintainer-ready technical question. If approval is not granted, do not substitute bulk outreach. Continue the 48-hour evidence audit, respond promptly to any real Trial Report or external feedback, and improve only the friction directly reported by those users.
+Do not add non-essential engineering features. Wait for a real, independently chosen trial or for a contributor to act on Issue #9; respond with prompt, evidence-based triage when that occurs. If a later public action becomes appropriate, recheck that venue's rules and request a fresh immediate confirmation for the exact content and account action.
 
 ## References
 
 [1]: https://dev.to/pangxueyuan2creator/why-ai-generated-code-needs-independent-verification-1j88#comment-3co2j "External technical feedback on DEV"
-[2]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31679485561 "Latest PatchWitness CI"
-[3]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31679485597 "Latest PatchWitness CodeQL"
-[4]: https://trendshift.io/repositories/128828 "Trendshift PatchWitness record"
-[5]: https://github.com/Klausc06/ai-trends/blob/cc716c337d635933a68cba2f44f6c3cf89fd5afb/data/repos/pangxueyuan2-creator-patchwitness.json "ai-trends metadata record"
-[6]: https://github.com/lethanhson9901/repo-dashboard/blob/ff2d4eb884922c4d9d1563fceb0f7debb1013938/src/data/reddit/community_news/ChatGPTCoding.json "repo-dashboard community data"
+[2]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31684834028 "Latest PatchWitness CI"
+[3]: https://github.com/pangxueyuan2-creator/patchwitness/actions/runs/31684834026 "Latest PatchWitness CodeQL"
