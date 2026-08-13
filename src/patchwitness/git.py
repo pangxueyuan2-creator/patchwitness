@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import os
+import stat
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -152,9 +154,35 @@ def _normalize_rename_path(path: str) -> str:
     return path.rsplit(" => ", 1)[-1].replace("\\", "/")
 
 
-def _file_sha256(path: Path) -> str | None:
+def safe_regular_file(root: Path, relative_path: str) -> Path | None:
+    """Return a repository-contained regular file without following symlinks.
+
+    Git paths are repository-relative, but untracked paths can still be symlinks.
+    Hashing or scanning such a path must not read data outside the repository.
+    """
     try:
-        with path.open("rb") as handle:
+        repository = root.resolve(strict=True)
+        candidate = Path(os.path.abspath(root / relative_path))
+        candidate.relative_to(repository)
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(repository)
+        if resolved != candidate or not stat.S_ISREG(resolved.stat().st_mode):
+            return None
+    except (OSError, ValueError):
+        return None
+    return resolved
+
+
+def _file_sha256(root: Path, relative_path: str) -> str | None:
+    path = safe_regular_file(root, relative_path)
+    if path is None:
+        return None
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                return None
             digest = hashlib.file_digest(handle, "sha256")
     except OSError:
         return None
@@ -201,12 +229,14 @@ def _parallel_file_sha256(root: Path, paths: list[str]) -> dict[str, str | None]
         return {}
     workers = min(8, max(1, len(paths)))
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="patchwitness-hash") as pool:
-        values = pool.map(lambda path: _file_sha256(root / path), paths)
+        values = pool.map(lambda path: _file_sha256(root, path), paths)
         return dict(zip(paths, values, strict=True))
 
 
 def _is_binary(path: Path) -> bool:
     try:
+        if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):
+            return False
         sample = path.read_bytes()[:8_192]
     except OSError:
         return False
@@ -215,6 +245,8 @@ def _is_binary(path: Path) -> bool:
 
 def _count_lines(path: Path) -> int:
     try:
+        if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):
+            return 0
         raw = path.read_bytes()
     except OSError:
         return 0
