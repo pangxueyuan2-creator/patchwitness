@@ -30,4 +30,4 @@ For a merge boundary, use the independent GitHub Actions job from [the PatchWitn
 
 ## Limitations
 
-This example was tested by executing the Bash script directly in the public PatchWitness repository. It does not claim that every Copilot CLI release, Windows installation, shell policy or repository layout behaves identically. Validate the hook configuration in a non-sensitive repository before relying on it, and retain standard code review, branch protection and CI controls.
+This example was tested by executing the Bash script directly in the public PatchWitness repository. The PowerShell script is exercised directly by the Windows CI runner with a strict caller, a synthetic uncommitted change, and local Passport verification. This does **not** exercise Copilot CLI event dispatch, and it does not claim that every Copilot CLI release, Windows installation, shell policy or repository layout behaves identically. Validate the hook configuration in a non-sensitive repository before relying on it, and retain standard code review, branch protection and CI controls.
