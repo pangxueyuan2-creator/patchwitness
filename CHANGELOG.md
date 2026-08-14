@@ -5,6 +5,14 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Fixed
+
+- Excluded local virtual environments and generated build directories from source distributions, so contributors can build release artifacts from a working tree without packaging absolute virtual-environment links.
+
+### Security
+
+- Updated the pinned CodeQL v4 revision used for continuous Python security analysis.
+
 ## [0.2.1] - 2026-08-13
 
 ### Fixed
