@@ -1,4 +1,5 @@
 import json
+import tomllib
 from pathlib import Path
 
 from patchwitness.benchmark import run_benchmark
@@ -22,6 +23,12 @@ def test_required_open_source_files_exist() -> None:
         "Dockerfile",
     )
     assert all((ROOT / path).is_file() for path in required)
+
+
+def test_sdist_excludes_generated_uv_lockfile() -> None:
+    configuration = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    exclude = configuration["tool"]["hatch"]["build"]["targets"]["sdist"]["exclude"]
+    assert "uv.lock" in exclude
 
 
 def test_evidence_schema_has_runtime_required_fields() -> None:
