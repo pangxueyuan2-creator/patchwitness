@@ -47,6 +47,18 @@ jobs:
           patchwitness --version
           patchwitness doctor
           patchwitness benchmark --files 50 --rounds 1
+      - name: Copilot PowerShell hook smoke
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Content -Path 'examples/python-service/.patchwitness.toml' -Value "`n# Windows hook smoke marker"
+          & './examples/copilot-cli-hooks/.github/hooks/patchwitness-safe-scan.ps1'
+          if ($LASTEXITCODE -ne 0) { throw "Advisory hook exited with $LASTEXITCODE" }
+          $passports = @(Get-ChildItem '.patchwitness/evidence/copilot-safe-scan-*.json' -File)
+          if ($passports.Count -lt 1) { throw 'The PowerShell hook did not write a Passport.' }
+          & patchwitness verify $passports[-1].FullName
+          if ($LASTEXITCODE -ne 0) { throw "Generated Passport verification failed with $LASTEXITCODE" }
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
