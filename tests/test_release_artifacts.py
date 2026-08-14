@@ -24,6 +24,11 @@ def test_required_open_source_files_exist() -> None:
     assert all((ROOT / path).is_file() for path in required)
 
 
+def test_sdist_excludes_generated_uv_lockfile() -> None:
+    ignored_paths = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "uv.lock" in ignored_paths
+
+
 def test_evidence_schema_has_runtime_required_fields() -> None:
     schema = json.loads((ROOT / "schemas/evidence-v1.schema.json").read_text(encoding="utf-8"))
     required = set(schema["required"])
