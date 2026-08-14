@@ -18,7 +18,7 @@ Post one tailored project-display comment in the current r/AI_Agents weekly thre
 
 | Item | Reason | Next condition |
 |---|---|---|
-| Issue #9 Windows validation | Linux execution environment cannot supply Windows PowerShell and an authenticated Copilot CLI session. | A Windows contributor provides a sanitized, reproducible run. |
+| Issue #9 Copilot event-dispatch validation | The PowerShell hook now has direct Windows CI coverage, but GitHub Copilot CLI `sessionEnd` dispatch itself remains unexercised. | A Windows contributor with Copilot CLI provides a sanitized, reproducible event-driven run. |
 | PyPI publication | Repository records that Trusted Publisher configuration is absent and requires the maintainer’s PyPI account setup. | Maintainer configures the publisher and environment. |
 | Additional broad promotion | Existing channel ledger explicitly restricts reposting and follow-up without genuine engagement. | A fresh, rule-compliant, directly relevant discussion or project thread emerges. |
 
@@ -66,3 +66,11 @@ A public GitHub code search for the unique project repository identifier found o
 After explicit user confirmation, one top-level response was published from `u/Any-Article-6402` in the r/AI_Agents discussion https://www.reddit.com/r/AI_Agents/comments/1vn9kzn/using_ai_to_discover_new_materials_feels_like_a/ (comment ID `p3k9abz`). The reply provided migration-handoff guidance before mentioning PatchWitness: separate a migration evidence bundle from staging validation with frozen agent-untouchable tests; reserve human review for semantic and operational migration risk; and treat clean diffs or agent-written test success as insufficient proof of migration safety. It disclosed representation, limited PatchWitness to deterministic evidence/control-plane checks, and expressly stated that it does not prove SQL correctness or replace staging or human review.
 
 This entry is public outreach only. It is not an installation, trial, testimonial, validation, or adoption claim.
+
+## Cycle 6 — Windows PowerShell hook regression fix
+
+The Windows validation attempt for Issue #9 intentionally added a direct CI smoke step, but the base-authoritative project policy correctly rejected the protected workflow edit with `PW003`; the validation PR was not merged or forced through. Its Windows runner nevertheless exposed a real defect: the advisory hook used `Write-Error`, which becomes terminating when the caller sets `$ErrorActionPreference = 'Stop'`, preventing the script from reaching its documented `exit 0` behavior.
+
+The focused fix was merged in [PR #11](https://github.com/pangxueyuan2-creator/patchwitness/pull/11) as merge commit `e284cccf2c342dc3d5783b206c7d69387fdb6134`. The hook now writes advisory status to stderr through `[Console]::Error.WriteLine`, and a Windows-only regression test creates a synthetic Git change, invokes the hook under a strict PowerShell caller, verifies the generated Passport, and asserts a zero process exit. The complete pull-request suite passed, including the PatchWitness gate, Windows/Python 3.13, Linux, macOS, packaging, Docker, CodeQL, and dependency review. Documentation explicitly limits this evidence to direct PowerShell execution; it does not claim Copilot CLI `sessionEnd` event-dispatch compatibility.
+
+The blocked workflow-smoke PR was closed with an explanation after the focused fix merged. Issue #9 remains open for the narrower, still-unverified Copilot CLI event-dispatch path.
