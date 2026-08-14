@@ -43,6 +43,11 @@ def test_copilot_powershell_hook_writes_an_advisory_passport(tmp_path: Path) -> 
     )
     assert patchwitness_executable.is_file()
 
+    command = (
+        "$ErrorActionPreference = 'Stop'; & '"
+        + str(hook).replace("'", "''")
+        + "'; exit $LASTEXITCODE"
+    )
     result = subprocess.run(
         [
             "pwsh",
@@ -50,8 +55,7 @@ def test_copilot_powershell_hook_writes_an_advisory_passport(tmp_path: Path) -> 
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "$ErrorActionPreference = 'Stop'; & $args[0]; exit $LASTEXITCODE",
-            str(hook),
+            command,
         ],
         cwd=tmp_path,
         text=True,
