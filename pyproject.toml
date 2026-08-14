@@ -57,7 +57,7 @@ dev = [
 packages = ["src/patchwitness"]
 
 [tool.hatch.build.targets.sdist]
-exclude = [".venv*", "build", "dist", "uv.lock"]
+exclude = [".venv*", "build", "dist"]
 
 [tool.hatch.version]
 path = "src/patchwitness/_version.py"
