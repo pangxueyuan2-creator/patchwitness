@@ -23,7 +23,7 @@ generated Change Passport, and a successful offline verification of that passpor
 Install the public release:
 
 ```bash
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
 ```
 
 Inside a Git repository:
