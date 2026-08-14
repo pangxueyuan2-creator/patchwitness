@@ -98,17 +98,17 @@ Run a structural scan in any Git repository with `uvx`—no permanent installati
 code execution:
 
 ```bash
-uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl" patchwitness scan --no-checks
+uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl" patchwitness scan --no-checks
 ```
 
 Or install the CLI for repeated use:
 
 ```bash
 # pipx
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
 
 # or uv
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.1/patchwitness-0.2.1-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
 ```
 
 Run one command inside any existing Git repository:
@@ -385,7 +385,7 @@ high-risk repositories.
 
 ## Project status
 
-`v0.2.1` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
+`v0.2.2` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
 macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
 [ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
 estimates in [OSS_READINESS.md](OSS_READINESS.md).
