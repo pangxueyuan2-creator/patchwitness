@@ -80,3 +80,28 @@ def test_protected_directory_blocks_nested() -> None:
     )
     assert all(f.rule_id == "PW003" for f in findings)
     assert {f.path for f in findings} == {".github/workflows/ci.yml", ".github/CODEOWNERS"}
+
+
+def test_rename_cannot_move_a_protected_path_into_allowed_scope() -> None:
+    contract = Contract(
+        allowed_paths=("src/**",),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    renamed = FileChange(
+        "src/ci.yml",
+        "R100",
+        0,
+        0,
+        False,
+        "before",
+        "after",
+        previous_path=".github/workflows/ci.yml",
+    )
+
+    findings = evaluate_policy(contract, [renamed])
+
+    assert {(finding.rule_id, finding.path) for finding in findings} == {
+        ("PW002", ".github/workflows/ci.yml"),
+        ("PW003", ".github/workflows/ci.yml"),
+    }

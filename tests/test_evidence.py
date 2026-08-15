@@ -49,6 +49,21 @@ def test_untracked_files_are_included(tmp_path: Path) -> None:
     assert [item["path"] for item in pack.changes] == ["new.py"]
 
 
+def test_rename_records_previous_path_and_both_content_hashes(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    git(root, "mv", "app.py", "renamed.py")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    assert len(pack.changes) == 1
+    change = pack.changes[0]
+    assert change["path"] == "renamed.py"
+    assert change["previous_path"] == "app.py"
+    assert change["status"].startswith("R")
+    assert change["before_sha256"] is not None
+    assert change["after_sha256"] is not None
+
+
 def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:
     root = repository(tmp_path)
     outside = tmp_path.parent / "outside-secret.txt"
