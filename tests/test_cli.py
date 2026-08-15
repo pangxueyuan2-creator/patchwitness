@@ -119,3 +119,25 @@ def test_smart_scan_uses_latest_commit_when_worktree_is_clean(
     assert result == 0
     pack = load_evidence(tmp_path / "evidence.json")
     assert [change["path"] for change in pack.changes] == ["app.py"]
+
+
+def test_smart_scan_on_single_commit_repo_falls_back_to_head(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    """A shallow or brand-new repo with no parent must not crash; base becomes HEAD."""
+
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
+    git(tmp_path, "config", "user.name", "PatchWitness Tests")
+    (tmp_path / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "only commit")
+    monkeypatch.chdir(tmp_path)  # type: ignore[attr-defined]
+
+    result = main(["scan", "--no-checks", "--output", "evidence.json"])
+
+    assert result == 0
+    pack = load_evidence(tmp_path / "evidence.json")
+    assert pack.repository["base_revision"]  # resolved SHA, not empty
+    # no parent available → empty or structural-only change set is acceptable
+    assert pack.summary["checks_total"] == 0
