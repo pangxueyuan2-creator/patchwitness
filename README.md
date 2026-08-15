@@ -10,48 +10,21 @@
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/pangxueyuan2-creator/patchwitness/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/pangxueyuan2-creator/patchwitness/releases"><img alt="Release" src="https://img.shields.io/github/v/release/pangxueyuan2-creator/patchwitness"></a>
   <a href="https://github.com/marketplace/actions/patchwitness-gate"><img alt="GitHub Marketplace" src="https://img.shields.io/badge/GitHub_Marketplace-PatchWitness_Gate-2f81f7?logo=github"></a>
-  <a href="https://github.com/pangxueyuan2-creator/patchwitness/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/pangxueyuan2-creator/patchwitness?style=social"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
-  <a href="#60-second-demo-tests-pass-the-gate-fails"><img alt="Real demo" src="https://img.shields.io/badge/demo-60_seconds-55e6c1"></a>
   <img alt="Python" src="https://img.shields.io/badge/python-3.11--3.14-3776AB">
   <img alt="Runtime dependencies" src="https://img.shields.io/badge/runtime_dependencies-0-2ea44f">
 </p>
 
-<p align="center">
-  If independent verification for agent-authored patches belongs in the toolchain, try the
-  <a href="#60-second-demo-tests-pass-the-gate-fails">60-second demo</a> and
-  <a href="https://github.com/marketplace/actions/patchwitness-gate">add PatchWitness Gate to CI</a>.
-  If it proves useful, <a href="https://github.com/pangxueyuan2-creator/patchwitness">star PatchWitness</a>.
-  Real trial reports and technical criticism are even more valuable.
-</p>
+AI coding agents can write a patch in minutes. Reviewers still have to figure out whether the agent stayed in scope, whether it touched CI or its own verifier, and whether the claimed tests actually ran.
 
-AI coding agents can write a patch in minutes. Reviewers still have to reconstruct what the agent was
-asked to do, whether it stayed in scope, whether it changed its own verifier, and whether the claimed
-tests actually ran.
+**PatchWitness turns a change into a verifiable Change Passport.**  
+It reads Git facts, loads policy from a trusted base commit, runs the repository's own checks, looks at dependency impact, and produces an offline-verifiable evidence pack. No model is asked to judge its own work.
 
-**PatchWitness turns every change into a verifiable Change Passport.** It derives facts from Git,
-loads policy from a trusted revision, executes repository-owned checks, computes dependency blast
-radius, and seals the result into an offline-verifiable evidence pack. No LLM judges its own work.
+It is a local-first trust gate, not another AI code reviewer.
 
-It is not another AI reviewer. It is a local-first, agent-neutral trust gate for scope, verifier
-integrity, real check execution, secrets, dependency impact, and portable evidence.
+## 60-second demo
 
-For the first run, `patchwitness scan` detects the repository stack and test runner, chooses whether
-to inspect working-tree changes or the latest commit, and writes a Change Passport—without requiring
-a configuration file.
-
-## 60-second demo: tests pass, the gate fails
-
-<p align="center">
-  <img src="docs/assets/demo-terminal.svg" alt="Real PatchWitness demo: tests pass but a protected CI workflow change is blocked" width="100%" />
-</p>
-
-The simulated coding agent adds a correct feature and a passing test, but also makes GitHub Actions
-failures non-blocking. The tests pass. PatchWitness loads policy from the trusted base commit, runs
-the same tests, blocks the workflow change with `PW002` and `PW003`, and emits a Change Passport that
-verifies offline.
-
-Try the entire scenario with Git and Python 3.11+—no package installation required:
+The demo shows a common failure mode: the agent adds a correct feature and a passing test, but also weakens a protected CI workflow. Tests pass. PatchWitness still blocks the change.
 
 ```bash
 git clone https://github.com/pangxueyuan2-creator/patchwitness.git
@@ -59,377 +32,90 @@ cd patchwitness
 python demo/run_demo.py
 ```
 
-See the [five-minute reproduction](demo/README.md), the committed
-[real terminal transcript](demo/artifacts/terminal-output.txt), and the
-[generated Change Passport](demo/artifacts/risk-change-passport.json).
+No package installation required. See the [demo README](demo/README.md) and the committed [terminal transcript](demo/artifacts/terminal-output.txt).
 
-### Try without executing repository code
+## Quick start
 
-If you want to inspect a **trusted** repository before allowing any detected test command to run, start with the structural path below. It reads Git and repository metadata, writes a Change Passport, and does not execute the repository's tests or scripts:
-
-```bash
-cd your-repository
-patchwitness doctor
-patchwitness scan --no-checks
-```
-
-`doctor` shows the detected stack and the next recommended command. Only run `patchwitness scan` with checks after reviewing the detected command and deciding that executing the repository code is appropriate for your environment.
-
-## The trust boundary coding agents are missing
-
-| Question reviewers ask | PatchWitness evidence source |
-|---|---|
-| Did it stay inside the task? | Allowed/denied path contract evaluated against Git |
-| Did it modify CI or the verifier? | Protected control-plane rules loaded from the base revision |
-| Did the tests really run? | Exit code, duration, and redacted output hash from a real process |
-| What else could this break? | Cached Python/JS/TS reverse dependency graph |
-| Can I verify the report later? | Canonical JSON payload with SHA-256 integrity verification |
-| Can my platform consume it? | Python SDK, JSON, SARIF, GitHub annotations, MCP, analyzer plugins |
-
-PatchWitness does **not** claim that a passing test proves semantic correctness. It proves narrower,
-useful facts about scope, verifier integrity, execution, and provenance so human review starts with
-evidence instead of agent-authored prose.
-
-## Quick start: first evidence in 30 seconds
-
-PatchWitness is currently distributed from GitHub:
-
-Run a structural scan in any Git repository with `uvx`—no permanent installation and no repository
-code execution:
+Structural scan (no repository code execution):
 
 ```bash
 uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl" patchwitness scan --no-checks
 ```
 
-Or install the CLI for repeated use:
+Or install once:
 
 ```bash
-# pipx
 pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
-
-# or uv
+# or
 uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
 ```
 
-Run one command inside any existing Git repository:
+Then inside any Git repo:
 
 ```bash
-cd your-repository
-patchwitness scan
+patchwitness doctor          # see what it detected
+patchwitness scan            # full scan (will run tests)
+patchwitness scan --no-checks # structural only
 ```
 
-With uncommitted changes, `scan` compares the working tree with `HEAD`. On a clean tree it inspects
-the latest commit against `HEAD^`. Use `--base origin/main` whenever you want an explicit boundary.
-If a committed `.patchwitness.toml` exists, `scan` uses it; otherwise it creates an in-memory preview
-policy and clearly labels the evidence `auto-detected-preview`.
+`scan` looks at the working tree vs `HEAD` (or the latest commit if the tree is clean). Use `--base origin/main` when you want an explicit boundary.
 
-Project detection is deterministic and local—no code execution, network request, or LLM call is
-used to choose commands:
+## Core idea
 
-| Stack | Detected verification command |
+| Question | How PatchWitness answers |
 |---|---|
-| Python | pytest via `uv`, Poetry, Pipenv, or Python; repository `.venv` is preferred automatically |
-| Node.js | `npm`, pnpm, Yarn, or Bun `test` script |
-| Go | `go test ./...` |
-| Rust | `cargo test --workspace` |
-| .NET / Maven | `dotnet test` / `mvn test` |
-| Ruby / PHP / Make | repository-declared RSpec, Rake, Composer, or `make test` |
+| Did the change stay in scope? | Path contract against the real Git diff |
+| Did it touch CI / the verifier? | Protected rules loaded from the trusted base |
+| Did the tests actually run? | Real process exit code + duration + redacted output hash |
+| What else might break? | Local reverse dependency graph |
+| Can I trust the report later? | Canonical JSON + SHA-256 |
 
-`patchwitness doctor` shows the detected profile, missing executables, repository state, and the next
-recommended command. Use `patchwitness scan --no-checks` for structural analysis only.
+A green Change Passport does **not** mean the code is correct. It only means the recorded scope, policy, checks, and integrity claims hold.
 
-## Where PatchWitness belongs
-
-Use both surfaces for different guarantees:
-
-| Surface | Role | Trust level |
-|---|---|---|
-| Local or agent post-task hook | Fast feedback before a pull request: inspect the real diff, protected files, and a preview Change Passport | Advisory; the developer or agent controls the environment |
-| Required GitHub Action | Merge enforcement: load reviewed policy from the immutable base SHA, run repository-owned checks, and retain evidence | Authoritative when branch protection requires the job and protects the base branch |
-
-Start locally with `patchwitness scan`, then make
-[PatchWitness Gate](https://github.com/marketplace/actions/patchwitness-gate) required after the
-generated `.patchwitness.toml` has been reviewed and committed. PatchWitness complements CODEOWNERS,
-branch protection, and semantic review; it does not replace them.
-
-> [!CAUTION]
-> Detection only reads repository metadata, but detected test commands execute repository code with
-> your local user permissions. For a repository you do not trust, inspect the commands with
-> `patchwitness doctor` or begin with `patchwitness scan --no-checks`.
-
-## Help validate PatchWitness on 10 real repositories
-
-PatchWitness is looking for its first 10 non-maintainer trial runs. The goal is not testimonials or
-stars; it is to learn where independent change evidence is useful, noisy, or missing in real coding
-agent and CI workflows.
-
-Choose the smallest safe trial:
-
-```bash
-# Reproduce the known risky-workflow case without installing anything.
-python demo/run_demo.py
-
-# Or inspect one of your own trusted repositories without executing its code.
-patchwitness doctor
-patchwitness scan --no-checks
-```
-
-If the result teaches you anything—even that PatchWitness is not useful for your workflow—please
-open a structured [Trial Report](https://github.com/pangxueyuan2-creator/patchwitness/issues/new?template=trial-report.yml).
-Include only sanitized output or a public repository link. Do not share private source, credentials,
-proprietary logs, or sensitive Change Passports.
-
-The maintainer will use real trial reports to prioritize fixes and integrations, and will count a
-repository as an adopter only with the user's explicit permission. See the
-[five-minute early-adopter guide](docs/early-adopter-guide.md).
-
-## Persist a trusted policy in five minutes
-
-After trying the scan, generate a reviewable policy. `init` uses the same detection engine and can
-represent multiple ecosystems declared at the repository root:
+## Making a trusted policy
 
 ```bash
 patchwitness init
-# Review the detected checks and path policy.
+# review the generated .patchwitness.toml
 git add .patchwitness.toml .gitignore
 git commit -m "chore: add PatchWitness policy"
 ```
 
-Override detection when a repository has a custom harness:
+Then enforce against that trusted base:
 
 ```bash
-patchwitness init --check "unit=make unit" --check "integration=make integration" --force
+patchwitness gate --base origin/main --policy-ref origin/main --clean-room
 ```
 
-After an agent changes the working tree, enforce the policy from that trusted commit:
-
-```bash
-patchwitness gate \
-  --base HEAD \
-  --policy-ref HEAD \
-  --clean-room \
-  --output .patchwitness/evidence/first.json
-
-patchwitness verify .patchwitness/evidence/first.json
-```
-
-The one-time policy commit is deliberate: without a trusted base, a patch could weaken
-`.patchwitness.toml` and immediately grade itself against the weaker policy.
-
-Create a narrower contract for one task:
-
-```bash
-patchwitness contract new GH-123 \
-  --goal "Fix token refresh without changing public API" \
-  --allow "src/auth/**" \
-  --allow "tests/auth/**" \
-  --check "tests=python -m pytest tests/auth"
-
-patchwitness gate \
-  --base origin/main \
-  --contract .patchwitness/contracts/GH-123.toml \
-  --clean-room
-```
-
-In CI, keep the default contract on the base branch and make that version authoritative:
-
-```bash
-patchwitness gate \
-  --base "$BASE_SHA" \
-  --contract .patchwitness.toml \
-  --policy-ref "$BASE_SHA" \
-  --clean-room \
-  --output evidence.json
-
-patchwitness report evidence.json --format sarif --output patchwitness.sarif
-```
-
-Put the same trusted-base gate on every pull request:
-
-```yaml
-- uses: pangxueyuan2-creator/patchwitness@42a5e9b7f5582c37d952be6b1e4b7b1f57600163 # v0.2.1
-  with:
-    base: ${{ github.event.pull_request.base.sha }}
-    policy-ref: ${{ github.event.pull_request.base.sha }}
-    contract: .patchwitness.toml
-    clean-room: "true"
-```
-
-The complete ready-to-copy workflow, permissions, and dependency-setup notes are in the
-[GitHub Actions integration](docs/integrations/github-actions.md). More runnable repository shapes
-are indexed under [`examples/`](examples/README.md).
-
-Using Cline? The validated [Cline `TaskComplete` hook](docs/integrations/cline.md) triggers a
-structural Change Passport after each successful agent turn. It does not retain the prompt or model
-output, and it leaves merge enforcement to the required GitHub Action.
-
-Using another coding agent? Copy the provider-neutral
-[agent instruction and CI handoff](docs/integrations/coding-agents.md) for Codex, ChatGPT, Claude
-Code, Cursor, Copilot, Aider, or a custom orchestrator.
-
-## Why it is different
-
-1. **Infrastructure-derived evidence.** Results come from Git objects, file hashes, process exit
-   codes, and deterministic rules—not from a second model reviewing the first model.
-2. **Base-authoritative policy.** `--policy-ref` loads the contract from a trusted commit, so a PR
-   cannot weaken its own scope or verifier and then report green.
-3. **Change Passport, not another dashboard.** Evidence is portable JSON with stable rule IDs,
-   Markdown, SARIF, GitHub annotations, and offline integrity verification.
-4. **Impact-aware review.** A cached local dependency graph tells reviewers which source files and
-   tests are downstream of the patch.
-5. **Agent and model neutral.** Claude Code, Codex, Copilot, Cursor, Aider, custom agents, and human
-   patches all produce the same evidence format.
-6. **Built to embed.** Zero runtime dependencies, a typed Python SDK, analyzer entry points, stdio
-   MCP tools, a composite GitHub Action, and deterministic JSON output.
-
-## Platform surface
-
-| Surface | Status | Use |
-|---|---|---|
-| CLI | Ready | Local gates, CI, reports, contracts, benchmarks |
-| Python SDK | Ready | Embed capture and verification in developer platforms |
-| JSON evidence | Ready | Store, diff, sign, or ingest Change Passports |
-| SARIF / GitHub | Ready | Code scanning and PR annotations |
-| MCP | Ready | Give any MCP host read/capture/impact tools |
-| Cline hook | Hook-contract validated | Trigger a structural passport after `TaskComplete` |
-| Analyzer plugins | Ready | Add organization- or language-specific evidence |
-| Docker | Ready | Reproducible CI execution |
-| Hosted control plane | Intentionally absent | Core remains local-first and vendor-neutral |
-
-## Architecture
-
-```mermaid
-flowchart LR
-    A["Agent or developer patch"] --> G["Git fact collector"]
-    B["Contract from trusted base"] --> P["Deterministic policy engine"]
-    G --> P
-    G --> I["Dependency impact graph"]
-    C["Repository checks"] --> R["Clean-room runner"]
-    P --> E["Change Passport"]
-    I --> E
-    R --> E
-    S["Secret scanner"] --> E
-    E --> V["Offline verifier"]
-    E --> O["JSON / SARIF / Markdown / MCP / SDK"]
-```
-
-The detailed data flow, extension boundaries, and trust assumptions are in
-[Architecture](docs/architecture/overview.md) and [Threat model](docs/threat-model.md).
+In CI you can use the [Marketplace Action](https://github.com/marketplace/actions/patchwitness-gate).
 
 ## Commands
 
 ```text
-patchwitness scan                         Smart zero-config first verification
-patchwitness init                         Detect the project and create a starter contract
-patchwitness contract new ...             Create a task-scoped contract
-patchwitness gate ...                     Capture evidence and fail closed
-patchwitness capture ...                  Capture without enforcing the result
-patchwitness verify evidence.json         Verify payload integrity offline
-patchwitness inspect evidence.json        Read a Change Passport
-patchwitness report evidence.json ...     Render Markdown, SARIF, JSON, or annotations
-patchwitness impact --base HEAD            Analyze dependency blast radius
-patchwitness explain PW003                 Explain a stable policy rule
-patchwitness mcp --root .                  Serve MCP tools over stdio
-patchwitness benchmark                     Run a real local synthetic benchmark
-patchwitness doctor                        Check prerequisites
+patchwitness scan              Zero-config first look
+patchwitness init              Create a starter contract
+patchwitness gate ...          Enforce and fail closed
+patchwitness verify <file>     Offline integrity check
+patchwitness impact --base HEAD
+patchwitness doctor
+patchwitness mcp --root .
 ```
 
-Exit codes are stable: `0` success/pass, `1` enforced gate failure, `2` usage/configuration/runtime
-error.
+Exit codes: `0` pass, `1` gate failure, `2` usage/runtime error.
 
-## MCP integration
+## Current status
 
-```json
-{
-  "mcpServers": {
-    "patchwitness": {
-      "command": "patchwitness",
-      "args": ["mcp", "--root", "."]
-    }
-  }
-}
-```
+Public alpha (v0.2.x). Evidence schema v1 is stable.  
+Single maintainer. No production adoption claims yet.
 
-The MCP server exposes `patchwitness_capture`, `patchwitness_verify`, and
-`patchwitness_impact`. Paths are confined to the configured repository root, and check execution is
-off by default. See [MCP integration](docs/integrations/mcp.md).
+Known limitations are documented in [PROJECT_STATUS.md](PROJECT_STATUS.md) and the [threat model](docs/threat-model.md). The important ones:
 
-## Measured performance
-
-The committed benchmark is generated by `patchwitness benchmark`; it is not hand-written. On the
-maintainer's Windows 11 / Python 3.14.5 machine, a synthetic 250-file repository with 50 changed
-files produced these medians across 7 rounds:
-
-| Operation | Median |
-|---|---:|
-| Git change collection + before/after SHA-256 | 200.935 ms |
-| Cold dependency impact graph | 19.684 ms |
-| Warm cached impact graph | 3.946 ms |
-
-These are local synthetic results, not universal performance claims. See
-[benchmark methodology and raw data](docs/benchmarks.md).
-
-## Security posture
-
-- Command output is redacted before excerpts and hashes enter evidence.
-- High-confidence secret findings record type/path/line but never the value.
-- Clean-room Git worktrees disable repository hooks during materialization.
-- Untracked symlinks are rejected in clean-room mode.
-- Evidence writes are atomic and verified before persistence.
-- Plugins are an explicit trust boundary and are never installed automatically.
-
-Important limitations: SHA-256 provides tamper evidence, not signer identity; clean-room mode is a
-disposable filesystem, not an OS-level sandbox; and regex-based dependency graphs are conservative.
-Read [SECURITY.md](SECURITY.md) and the [threat model](docs/threat-model.md) before enforcing it on
-high-risk repositories.
-
-## Project status
-
-`v0.2.2` is a tested public alpha with stable evidence schema v1. It supports Windows, Linux, and
-macOS on Python 3.11-3.14. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for honest limitations and
-[ROADMAP.md](ROADMAP.md) for the route to v1.0. Adoption and maintainer evidence are tracked without
-estimates in [OSS_READINESS.md](OSS_READINESS.md).
-
-## FAQ
-
-### Is this another LLM code reviewer?
-
-No. PatchWitness does not ask a model to judge another model. It derives narrower evidence from Git
-objects, trusted policy, process exit codes, hashes, and dependency structure. Use it alongside human
-review, CodeQL, Semgrep, or another semantic/security reviewer.
-
-### Does a passing Change Passport prove the code is correct?
-
-No. It proves the recorded scope, policy, check execution, impact, and integrity claims. Tests can be
-incomplete, SHA-256 does not identify the producer, and clean-room worktrees are not a kernel sandbox.
-
-### Which coding agents does it support?
-
-Any of them. Codex, Claude Code, Copilot, Cline, Cursor, Aider, custom agents, and human-authored
-patches all produce the same evidence format because PatchWitness operates on the repository change.
-
-### Does source code leave the machine?
-
-Not through PatchWitness core. Capture, policy evaluation, checks, reports, and verification run
-locally. Integrations or plugins may have their own trust boundaries, so review them before use.
-
-### Can CI or another platform consume the result?
-
-Yes. Use canonical JSON, Markdown, SARIF, GitHub annotations, the Python SDK, MCP tools, or analyzer
-entry points. The evidence schema is versioned under `schemas/`.
+- Clean-room is filesystem isolation, not a security sandbox
+- Dependency graph is conservative, not full compiler-level
+- A passing check only proves the command ran and exited successfully
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), the [plugin guide](docs/plugin-development.md), or a
-`good first issue`. Security reports should follow [SECURITY.md](SECURITY.md), not public issues.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go to [SECURITY.md](SECURITY.md).
 
-PatchWitness is licensed under [Apache-2.0](LICENSE).
-
-## Acknowledgements
-
-PatchWitness appreciates OpenAI's work on ChatGPT, Codex, developer tooling, and the broader agent
-ecosystem. Those products have helped move AI-assisted development from an interesting experiment
-toward a practical engineering workflow—and made trustworthy, inspectable automation an even more
-valuable open-source problem to solve.
-
-PatchWitness is an independent community project and is not affiliated with or endorsed by OpenAI.
+Licensed under [Apache-2.0](LICENSE).
