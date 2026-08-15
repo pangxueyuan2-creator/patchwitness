@@ -19,6 +19,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Check argv splitting keeps Windows paths and quoted payloads intact instead of using `shlex` (which left stray quotes or swallowed backslashes).
 - Bare `python` is resolved through PATH / the running virtualenv so Windows App Execution Aliases do not silently launch a global interpreter without project test tools.
 - Rename and copy findings now cite the matching source or destination path, so moving a protected file into an allowed directory still fails on the source (`#16`).
+- `git cat-file --batch` hashing now interleaves each request with its response. The previous write-all-then-read-all loop deadlocked on Windows once enough blob payloads filled the 4 KiB anonymous pipe (reproduced by the 1000-file benchmark).
 
 ### Added
 

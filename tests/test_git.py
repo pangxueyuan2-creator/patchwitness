@@ -83,6 +83,32 @@ def test_copy_and_rename_both_paths_are_policy_subjects(tmp_path: Path) -> None:
     assert renamed.after_sha256
 
 
+def test_batch_hash_does_not_deadlock_on_many_modified_files(tmp_path: Path) -> None:
+    """Regression: write-all-then-read-all filled the 4 KiB Windows pipe.
+
+    Each committed blob is large enough that 80 responses exceed that buffer
+    before any read happened. Interleaved cat-file I/O must finish instead of
+    hanging collect_changes.
+    """
+
+    root = _repo(tmp_path)
+    src = root / "src"
+    src.mkdir()
+    count = 80
+    payload = "x" * 256
+    for index in range(count):
+        (src / f"blob_{index:04d}.txt").write_text(f"{payload}-{index}\n", encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    for index in range(count):
+        (src / f"blob_{index:04d}.txt").write_text(f"changed-{index}\n", encoding="utf-8")
+
+    changes = collect_changes(root, "HEAD")
+    assert len(changes) == count
+    assert all(item.before_sha256 and item.after_sha256 for item in changes)
+    assert all(item.status.startswith("M") for item in changes)
+
+
 def test_untracked_cache_and_tool_evidence_are_not_review_surface(tmp_path: Path) -> None:
     root = _repo(tmp_path)
     (root / "keep.py").write_text("ok\n", encoding="utf-8")

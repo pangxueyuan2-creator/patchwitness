@@ -280,6 +280,15 @@ def _file_sha256(root: Path, relative_path: str) -> str | None:
 
 
 def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[str, str | None]:
+    """Hash committed blobs via ``git cat-file --batch``.
+
+    Requests and responses are interleaved. Writing every query before reading
+    any object deadlocks on Windows: the anonymous pipe is only 4 KiB, so
+    ``cat-file`` blocks on stdout while this process still blocks on stdin.
+    The large synthetic benchmark (1000 files / 200 changes) reproduced that
+    hang against the previous write-all-then-read-all loop.
+    """
+
     if not paths:
         return {}
     process = subprocess.Popen(
@@ -287,6 +296,7 @@ def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
+        bufsize=0,
     )
     assert process.stdin is not None
     assert process.stdout is not None
@@ -294,23 +304,40 @@ def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[
     try:
         for path in paths:
             process.stdin.write(f"{revision}:{path}\n".encode())
-        process.stdin.flush()
-        process.stdin.close()
-        for path in paths:
-            header = process.stdout.readline().decode("utf-8", errors="replace").strip()
+            process.stdin.flush()
+            header_raw = process.stdout.readline()
+            if not header_raw:
+                output[path] = None
+                continue
+            header = header_raw.decode("utf-8", errors="replace").strip()
             if header.endswith(" missing"):
                 output[path] = None
                 continue
             parts = header.rsplit(" ", 2)
-            if len(parts) != 3 or parts[1] != "blob":
+            if len(parts) != 3:
                 output[path] = None
                 continue
-            size = int(parts[2])
+            try:
+                size = int(parts[2])
+            except ValueError:
+                output[path] = None
+                continue
             content = process.stdout.read(size)
             process.stdout.read(1)
+            if parts[1] != "blob" or len(content) != size:
+                output[path] = None
+                continue
             output[path] = hashlib.sha256(content).hexdigest()
+        process.stdin.close()
+    except Exception:
+        process.kill()
+        raise
     finally:
-        process.wait(timeout=30)
+        try:
+            process.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
     return output
 
 
