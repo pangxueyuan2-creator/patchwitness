@@ -15,6 +15,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 - Added a Windows-only regression test that runs the published PowerShell hook against a synthetic Git change and verifies the generated Change Passport.
 - Added regression tests for directory patterns, trailing-slash directory forms, exact-path vs nested-prefix matching, and protected directory trees.
+- Added a regression ensuring smart scan on a single-commit (or parent-less) repository falls back to `HEAD` without an opaque failure.
 
 ### Security
 
