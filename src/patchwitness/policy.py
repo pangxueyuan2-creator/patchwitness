@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Iterable
 from functools import lru_cache
@@ -122,6 +123,22 @@ def evaluate_policy(
     return tuple(_deduplicate(findings))
 
 
+def case_insensitive_paths() -> bool:
+    """Return True when policy globs must fold case like the host filesystem.
+
+    Windows default volumes treat ``.GITHUB/WORKFLOWS/ci.yml`` as the same
+    file as ``.github/workflows/ci.yml``. Matching case-sensitively there
+    lets a denied workflow PASS and an allowed ``SRC/app.py`` fail PW002.
+    Linux stays case-sensitive: those spellings are different paths.
+    """
+
+    return os.name == "nt"
+
+
+def _fold(text: str) -> str:
+    return text.casefold() if case_insensitive_paths() else text
+
+
 def _matches_any(path: str, patterns: Iterable[str]) -> bool:
     normalized = path.replace("\\", "/")
     return any(_matches(normalized, pattern) for pattern in patterns)
@@ -133,7 +150,7 @@ def _matches(path: str, pattern: str) -> bool:
     Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
     patterns ending with / or /** match the directory itself and everything
     under it. A single * or ? never crosses a path separator; use ** to
-    match across directories.
+    match across directories. On Windows the comparison folds case.
     """
     normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
@@ -141,26 +158,31 @@ def _matches(path: str, pattern: str) -> bool:
     if not normalized or normalized in {"*", "**", "**/*"}:
         return True
 
+    path_cmp = _fold(path)
+
     # directory form: "src/" or "src/**"
     if normalized.endswith("/**"):
         prefix = normalized[:-3].rstrip("/")
         if not prefix:
             return True
-        return path == prefix or path.startswith(prefix + "/")
+        prefix_cmp = _fold(prefix)
+        return path_cmp == prefix_cmp or path_cmp.startswith(prefix_cmp + "/")
     if normalized.endswith("/") and "*" not in normalized and "?" not in normalized:
         prefix = normalized.rstrip("/")
         if not prefix:
             return True
-        return path == prefix or path.startswith(prefix + "/")
+        prefix_cmp = _fold(prefix)
+        return path_cmp == prefix_cmp or path_cmp.startswith(prefix_cmp + "/")
 
     if "*" not in normalized and "?" not in normalized:
-        return path == normalized or path.startswith(normalized + "/")
+        exact = _fold(normalized)
+        return path_cmp == exact or path_cmp.startswith(exact + "/")
 
-    return _glob_regex(normalized).fullmatch(path) is not None
+    return _glob_regex(normalized, case_insensitive_paths()).fullmatch(path) is not None
 
 
 @lru_cache(maxsize=256)
-def _glob_regex(pattern: str) -> re.Pattern[str]:
+def _glob_regex(pattern: str, ignore_case: bool = False) -> re.Pattern[str]:
     """Compile a policy glob where * and ? do not cross '/'."""
 
     pieces: list[str] = []
@@ -184,7 +206,8 @@ def _glob_regex(pattern: str) -> re.Pattern[str]:
         else:
             pieces.append(re.escape(character))
             index += 1
-    return re.compile("^" + "".join(pieces) + "$")
+    flags = re.IGNORECASE if ignore_case else 0
+    return re.compile("^" + "".join(pieces) + "$", flags)
 
 
 def _deduplicate(findings: Iterable[Finding]) -> list[Finding]:

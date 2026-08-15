@@ -22,6 +22,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - `git cat-file --batch` hashing now interleaves each request with its response. The previous write-all-then-read-all loop deadlocked on Windows once enough blob payloads filled the 4 KiB anonymous pipe (reproduced by the 1000-file benchmark).
 - `git diff --numstat -z` rename records (`added\\tdeleted\\t\\0old\\0new\\0`) now attach line counts to the destination path instead of the empty third field, so Unicode and spaced renames keep real stats.
 - Smart scan no longer treats a shallow clone missing `HEAD^` as an initial commit. That fallback produced an empty diff and could PASS; scan now fails closed until more history is fetched or `--base` is explicit.
+- Policy path matching folds case on Windows so `.GITHUB/WORKFLOWS/ci.yml` still matches `.github/workflows/**` and `SRC/app.py` still matches exclusive `src/**`. Linux stays case-sensitive.
 
 ### Added
 

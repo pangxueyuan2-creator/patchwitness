@@ -1,3 +1,4 @@
+import patchwitness.policy as policy_mod
 from patchwitness.models import CheckResult, CheckSpec, Contract, FileChange
 from patchwitness.policy import evaluate_policy
 
@@ -162,3 +163,84 @@ def test_rename_cannot_move_a_protected_path_into_allowed_scope() -> None:
         ("PW002", ".github/workflows/ci.yml"),
         ("PW003", ".github/workflows/ci.yml"),
     }
+
+
+def _src_exclusive_contract() -> Contract:
+    return Contract(
+        allowed_paths=("src/**",),
+        denied_paths=(".github/workflows/**", ".git/**"),
+        protected_paths=(".github/workflows/**",),
+        exclusive_allow=True,
+        require_tests=False,
+    )
+
+
+def test_windows_casefold_blocks_mixed_case_workflow(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: True)
+    findings = evaluate_policy(
+        _src_exclusive_contract(),
+        [change(".GITHUB/WORKFLOWS/ci.yml")],
+    )
+    codes = {finding.rule_id for finding in findings}
+    assert "PW001" in codes
+    assert "PW003" in codes
+
+
+def test_windows_casefold_allows_mixed_case_src(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: True)
+    findings = evaluate_policy(_src_exclusive_contract(), [change("SRC/app.py")])
+    assert findings == ()
+
+
+def test_windows_casefold_blocks_mixed_case_git_dir(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: True)
+    findings = evaluate_policy(_src_exclusive_contract(), [change(".GIT/config")])
+    assert any(finding.rule_id == "PW001" for finding in findings)
+
+
+def test_windows_casefold_blocks_mixed_case_rename_source(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: True)
+    renamed = FileChange(
+        "src/ci.yml",
+        "R100",
+        0,
+        0,
+        False,
+        "before",
+        "after",
+        previous_path=".GITHUB/WORKFLOWS/ci.yml",
+    )
+    findings = evaluate_policy(_src_exclusive_contract(), [renamed])
+    pairs = {(finding.rule_id, finding.path) for finding in findings}
+    assert ("PW001", ".GITHUB/WORKFLOWS/ci.yml") in pairs
+    assert ("PW003", ".GITHUB/WORKFLOWS/ci.yml") in pairs
+
+
+def test_posix_case_sensitive_mixed_case_workflow_is_not_protected(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: False)
+    findings = evaluate_policy(
+        _src_exclusive_contract(),
+        [change(".GITHUB/WORKFLOWS/ci.yml")],
+    )
+    codes = {finding.rule_id for finding in findings}
+    assert "PW002" in codes
+    assert "PW001" not in codes
+    assert "PW003" not in codes
+
+
+def test_posix_case_sensitive_mixed_case_src_is_outside_scope(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: False)
+    findings = evaluate_policy(_src_exclusive_contract(), [change("SRC/app.py")])
+    assert any(finding.rule_id == "PW002" for finding in findings)
+
+
+def test_star_glob_folds_case_on_windows(monkeypatch) -> None:
+    monkeypatch.setattr(policy_mod, "case_insensitive_paths", lambda: True)
+    contract = Contract(allowed_paths=("src/*.py",), require_tests=False)
+    findings = evaluate_policy(
+        contract,
+        [change("SRC/APP.PY"), change("SRC/nested/DEEP.PY")],
+    )
+    paths = {finding.path for finding in findings if finding.rule_id == "PW002"}
+    assert "SRC/APP.PY" not in paths
+    assert "SRC/nested/DEEP.PY" in paths
