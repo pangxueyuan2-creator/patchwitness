@@ -9,10 +9,12 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 - Preserved the advisory Copilot CLI PowerShell hook’s documented zero exit status when it is invoked by a strict PowerShell caller, while continuing to write its status to stderr.
 - Excluded local virtual environments and generated build directories from source distributions, so contributors can build release artifacts from a working tree without packaging absolute virtual-environment links.
+- Hardened policy path matching so directory patterns (`src/`, `src/**`), trailing slashes, and nested prefix cases behave consistently and deterministically.
 
 ### Added
 
 - Added a Windows-only regression test that runs the published PowerShell hook against a synthetic Git change and verifies the generated Change Passport.
+- Added regression tests for directory patterns, trailing-slash directory forms, exact-path vs nested-prefix matching, and protected directory trees.
 
 ### Security
 
