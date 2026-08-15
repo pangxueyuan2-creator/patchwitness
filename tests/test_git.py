@@ -1,7 +1,12 @@
 import subprocess
 from pathlib import Path
 
-from patchwitness.git import collect_changes, is_untracked_noise
+from patchwitness.git import (
+    _parse_name_status_z,
+    _parse_numstat_z,
+    collect_changes,
+    is_untracked_noise,
+)
 from patchwitness.models import Contract
 from patchwitness.policy import evaluate_policy
 
@@ -147,3 +152,74 @@ def test_untracked_cache_and_tool_evidence_are_not_review_surface(tmp_path: Path
     assert is_untracked_noise(".patchwitness/cache/impact-v1.json")
     assert is_untracked_noise(".patchwitness/evidence/run.json")
     assert not is_untracked_noise(".patchwitness/contracts/task.toml")
+
+
+def test_parse_name_status_z_unicode_rename() -> None:
+    payload = "R100\0计算.py\0calc_cn.py\0M\0readme.md\0"
+    assert _parse_name_status_z(payload) == [
+        ("calc_cn.py", "R100", "计算.py"),
+        ("readme.md", "M", None),
+    ]
+
+
+def test_cquoted_tab_parser_mangles_unicode_previous_path() -> None:
+    """Document why collect_changes must use -z, not tab-split + replace('\\','/')."""
+
+    line = 'R100\t"\\350\\256\\241\\347\\256\\227.py"\tcalc_cn.py'
+    parts = line.split("\t")
+    previous = parts[-2].replace("\\", "/")
+    assert previous != "计算.py"
+    assert "计算.py" not in previous
+
+
+def test_parse_numstat_z_regular_and_rename() -> None:
+    # Keep NULs explicit: "\03" is octal ESC, not NUL + "3".
+    payload = "4\t1\tsrc/app.py\0-\t-\tphoto.bin\0" + "3\t1\t\0计算.py\0calc_cn.py\0"
+    stats = _parse_numstat_z(payload)
+    assert stats["src/app.py"] == (4, 1, False)
+    assert stats["photo.bin"] == (0, 0, True)
+    assert stats["calc_cn.py"] == (3, 1, False)
+    assert "" not in stats
+
+
+def test_parse_numstat_z_keeps_len2_rename_without_trailing_tab() -> None:
+    stats = _parse_numstat_z("2\t0\0old name.py\0new name.py\0")
+    assert stats["new name.py"] == (2, 0, False)
+    assert "" not in stats
+
+
+def test_unicode_rename_keeps_line_counts_and_protected_source(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    (root / "计算.py").write_text("value = 1\nvalue = 2\n", encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    git(root, "mv", "计算.py", "calc_cn.py")
+    (root / "calc_cn.py").write_text("value = 1\nvalue = 2\nvalue = 3\n", encoding="utf-8")
+
+    changes = collect_changes(root, "HEAD")
+    renamed = next(item for item in changes if item.path == "calc_cn.py")
+    assert renamed.previous_path == "计算.py"
+    assert renamed.additions == 1
+    assert renamed.deletions == 0
+
+    contract = Contract(
+        allowed_paths=("calc_cn.py",),
+        protected_paths=("计算.py",),
+        require_tests=False,
+    )
+    findings = evaluate_policy(contract, changes)
+    assert any(finding.rule_id == "PW003" and finding.path == "计算.py" for finding in findings)
+
+
+def test_collect_changes_on_detached_head(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    (root / "keep.py").write_text("ok\n", encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    git(root, "checkout", "--detach", "HEAD")
+    (root / "keep.py").write_text("ok\nchanged\n", encoding="utf-8")
+
+    changes = collect_changes(root, "HEAD")
+    modified = next(item for item in changes if item.path == "keep.py")
+    assert modified.status.startswith("M")
+    assert modified.additions >= 1

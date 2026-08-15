@@ -181,7 +181,7 @@ def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
 
 
 def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
-    """Parse `git diff --numstat -z`. Rename is added\\tdeleted\\0old\\0new\\0."""
+    """Parse `git diff --numstat -z`. Rename is added\\tdeleted\\t\\0old\\0new\\0."""
 
     tokens = [token for token in payload.split("\0") if token != ""]
     stats: dict[str, tuple[int, int, bool]] = {}
@@ -190,6 +190,17 @@ def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
         parts = tokens[index].split("\t")
         if len(parts) == 3:
             added_text, deleted_text, path = parts
+            # Real `git diff --numstat -z` rename: "added\tdeleted\t\0old\0new\0".
+            if path == "" and index + 2 < len(tokens):
+                dest = tokens[index + 2].replace("\\", "/")
+                binary = added_text == "-" or deleted_text == "-"
+                stats[dest] = (
+                    0 if binary else int(added_text),
+                    0 if binary else int(deleted_text),
+                    binary,
+                )
+                index += 3
+                continue
             dest = _normalize_rename_path(path)
             binary = added_text == "-" or deleted_text == "-"
             stats[dest] = (
