@@ -64,6 +64,33 @@ def test_rename_records_previous_path_and_both_content_hashes(tmp_path: Path) ->
     assert change["after_sha256"] is not None
 
 
+def test_unicode_protected_rename_is_blocked(tmp_path: Path) -> None:
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
+    git(tmp_path, "config", "user.name", "PatchWitness Tests")
+    (tmp_path / "计算.py").write_text("value = 1\n", encoding="utf-8")
+    git(tmp_path, "add", "计算.py")
+    git(tmp_path, "commit", "-m", "base")
+    git(tmp_path, "mv", "计算.py", "calc_cn.py")
+
+    contract = Contract(
+        protected_paths=("计算.py",),
+        require_tests=False,
+        allowed_paths=("**",),
+    )
+    pack = capture_evidence(tmp_path, contract, execute_checks=False)
+
+    assert len(pack.changes) == 1
+    change = pack.changes[0]
+    assert change["path"] == "calc_cn.py"
+    assert change["previous_path"] == "计算.py"
+    assert change["status"].startswith("R")
+    assert pack.status == GateStatus.FAIL
+    assert any(
+        finding["rule_id"] == "PW003" and finding["path"] == "计算.py" for finding in pack.findings
+    )
+
+
 def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:
     root = repository(tmp_path)
     outside = tmp_path.parent / "outside-secret.txt"

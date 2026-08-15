@@ -61,36 +61,23 @@ def load_file_at_revision(root: Path, revision: str, relative_path: str) -> byte
 
 def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     status_result = _run(
-        root, "diff", "--name-status", "--find-renames", "--no-ext-diff", base_revision, "--"
+        root,
+        "diff",
+        "--name-status",
+        "-z",
+        "--find-renames",
+        "--no-ext-diff",
+        base_revision,
+        "--",
     )
     statuses: dict[str, tuple[str, str | None]] = {}
-    for line in status_result.stdout.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        code = parts[0]
-        path = parts[-1].replace("\\", "/")
-        previous_path = (
-            parts[-2].replace("\\", "/")
-            if code.startswith(("R", "C")) and len(parts) >= 3
-            else None
-        )
-        statuses[path] = (code, previous_path)
+    for dest, status, previous in _parse_name_status_z(status_result.stdout):
+        statuses[dest] = (status, previous)
 
-    numstat_result = _run(root, "diff", "--numstat", "--no-ext-diff", base_revision, "--")
-    stats: dict[str, tuple[int, int, bool]] = {}
-    for line in numstat_result.stdout.splitlines():
-        parts = line.split("\t", 2)
-        if len(parts) != 3:
-            continue
-        added_text, deleted_text, path = parts
-        path = _normalize_rename_path(path)
-        binary = added_text == "-" or deleted_text == "-"
-        stats[path] = (
-            0 if binary else int(added_text),
-            0 if binary else int(deleted_text),
-            binary,
-        )
+    numstat_result = _run(
+        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff", base_revision, "--"
+    )
+    stats = _parse_numstat_z(numstat_result.stdout)
 
     untracked_result = _run(root, "ls-files", "--others", "--exclude-standard", "-z")
     for raw_path in untracked_result.stdout.split("\0"):
@@ -134,6 +121,76 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
             )
         )
     return tuple(changes)
+
+
+def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
+    """Parse `git diff --name-status -z`. Rename/copy is STATUS\\0old\\0new\\0."""
+
+    tokens = [token for token in payload.split("\0") if token != ""]
+    records: list[tuple[str, str, str | None]] = []
+    index = 0
+    while index < len(tokens):
+        status = tokens[index]
+        letter = status[:1] if status else ""
+        if letter in {"R", "C"}:
+            if index + 2 >= len(tokens):
+                break
+            previous = tokens[index + 1].replace("\\", "/")
+            dest = tokens[index + 2].replace("\\", "/")
+            records.append((dest, status, previous))
+            index += 3
+            continue
+        if index + 1 >= len(tokens):
+            break
+        dest = tokens[index + 1].replace("\\", "/")
+        records.append((dest, status, None))
+        index += 2
+    return records
+
+
+def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
+    """Parse `git diff --numstat -z`. Rename is added\\tdeleted\\t\\0old\\0new\\0."""
+
+    tokens = [token for token in payload.split("\0") if token != ""]
+    stats: dict[str, tuple[int, int, bool]] = {}
+    index = 0
+    while index < len(tokens):
+        parts = tokens[index].split("\t")
+        # Regular: "added\tdeleted\tpath". Rename/copy -z: "added\tdeleted\t" + old + new.
+        if len(parts) == 3:
+            added_text, deleted_text, path = parts
+            if path == "" and index + 2 < len(tokens):
+                dest = tokens[index + 2].replace("\\", "/")
+                binary = added_text == "-" or deleted_text == "-"
+                stats[dest] = (
+                    0 if binary else int(added_text),
+                    0 if binary else int(deleted_text),
+                    binary,
+                )
+                index += 3
+                continue
+            dest = _normalize_rename_path(path)
+            binary = added_text == "-" or deleted_text == "-"
+            stats[dest] = (
+                0 if binary else int(added_text),
+                0 if binary else int(deleted_text),
+                binary,
+            )
+            index += 1
+            continue
+        if len(parts) == 2 and index + 2 < len(tokens):
+            added_text, deleted_text = parts
+            dest = tokens[index + 2].replace("\\", "/")
+            binary = added_text == "-" or deleted_text == "-"
+            stats[dest] = (
+                0 if binary else int(added_text),
+                0 if binary else int(deleted_text),
+                binary,
+            )
+            index += 3
+            continue
+        index += 1
+    return stats
 
 
 def is_dirty(root: Path) -> bool:
