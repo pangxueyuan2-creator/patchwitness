@@ -108,7 +108,7 @@ These answer different questions and do not depend on each other:
 - [GuardSpec](https://github.com/pangxueyuan2-creator/guardspec) — before work starts, check the repository’s explicit agent rules against a proposed path or command
 - [TaskToPR](https://github.com/pangxueyuan2-creator/tasktopr) — turn one Issue into an isolated branch, run real tests, leave evidence, optionally open a PR
 
-Use any combination, or none of them.
+Use any combination, or none of them. If `GUARDSPEC_CHECK_JSON` or `.guardspec-check.json` is present, the Change Passport cites `schema_version` / `policy_digest` / `decision` under `extensions.upstream` and still decides PASS/FAIL from its own checks.
 
 ## Status
 

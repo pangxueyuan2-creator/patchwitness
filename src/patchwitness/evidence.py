@@ -75,6 +75,22 @@ def capture_evidence(
     )
     total_lines = sum(change.changed_lines for change in changes)
     captured_at = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    extensions: dict[str, Any] = {
+        "impact": impact,
+        "analyzers": analyzer_extensions,
+        "verification": {
+            "clean_room": clean_room_checks,
+            "git_hooks_disabled": clean_room_checks,
+        },
+        "environment": {
+            "os": platform.system(),
+            "architecture": platform.machine(),
+            "python": platform.python_version(),
+        },
+    }
+    upstream = _optional_upstream_citation(repository)
+    if upstream is not None:
+        extensions["upstream"] = upstream
     unsigned: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "tool": {"name": "patchwitness", "version": __version__},
@@ -103,19 +119,7 @@ def capture_evidence(
             "warnings": sum(finding.severity == Severity.WARNING for finding in findings),
         },
         "captured_at": captured_at,
-        "extensions": {
-            "impact": impact,
-            "analyzers": analyzer_extensions,
-            "verification": {
-                "clean_room": clean_room_checks,
-                "git_hooks_disabled": clean_room_checks,
-            },
-            "environment": {
-                "os": platform.system(),
-                "architecture": platform.machine(),
-                "python": platform.python_version(),
-            },
-        },
+        "extensions": extensions,
     }
     payload_sha256 = _digest(unsigned)
     return EvidencePack.from_dict({**unsigned, "payload_sha256": payload_sha256})
@@ -162,6 +166,37 @@ def write_evidence(pack: EvidencePack, path: Path) -> Path:
             os.unlink(temporary)
         raise
     return path
+
+
+def _optional_upstream_citation(root: Path) -> dict[str, Any] | None:
+    """Cite an optional GuardSpec check JSON without trusting its decision.
+
+    Missing default file is omitted. An explicit env path that cannot be read
+    is recorded as unreadable. Citation never changes PASS/FAIL.
+    """
+
+    raw = os.environ.get("GUARDSPEC_CHECK_JSON")
+    if raw is not None and raw.strip() != "":
+        path = Path(raw)
+        if not path.is_file():
+            return {"status": "unreadable", "reason": "missing", "path": str(path)}
+    else:
+        path = root / ".guardspec-check.json"
+        if not path.is_file():
+            return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"status": "unreadable", "reason": str(exc), "path": str(path)}
+    if not isinstance(payload, dict):
+        return {"status": "unreadable", "reason": "not an object", "path": str(path)}
+    return {
+        "status": "present",
+        "schema_version": payload.get("schema_version"),
+        "policy_digest": payload.get("policy_digest"),
+        "decision": payload.get("decision"),
+        "path": str(path),
+    }
 
 
 def _digest(value: dict[str, Any]) -> str:
