@@ -64,6 +64,13 @@ def resolve_revision(root: Path, revision: str) -> str:
     return result.stdout.strip()
 
 
+def is_shallow_repository(root: Path) -> bool:
+    """Return True when Git reports this checkout as a shallow clone."""
+
+    result = _run(root, "rev-parse", "--is-shallow-repository", check=False)
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
 def head_revision(root: Path) -> str | None:
     result = _run(root, "rev-parse", "--verify", "HEAD", check=False)
     return result.stdout.strip() if result.returncode == 0 else None

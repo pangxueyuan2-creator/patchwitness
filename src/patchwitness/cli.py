@@ -34,6 +34,7 @@ from patchwitness.git import (
     collect_changes,
     find_root,
     is_dirty,
+    is_shallow_repository,
     load_file_at_revision,
     resolve_revision,
 )
@@ -532,6 +533,11 @@ def _select_scan_base(root: Path, requested: str | None) -> tuple[str, str]:
     try:
         resolve_revision(root, "HEAD^")
     except GitError:
+        if is_shallow_repository(root):
+            raise GitError(
+                "shallow clone is missing the parent of HEAD; fetch more history "
+                "(git fetch --deepen=1) or pass an explicit --base that exists locally"
+            ) from None
         return "HEAD", "initial commit; no parent is available"
     return "HEAD^", "clean tree; inspecting the latest commit"
 

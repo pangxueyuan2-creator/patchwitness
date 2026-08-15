@@ -5,6 +5,7 @@ from patchwitness.git import (
     _parse_name_status_z,
     _parse_numstat_z,
     collect_changes,
+    is_shallow_repository,
     is_untracked_noise,
 )
 from patchwitness.models import Contract
@@ -209,6 +210,17 @@ def test_unicode_rename_keeps_line_counts_and_protected_source(tmp_path: Path) -
     )
     findings = evaluate_policy(contract, changes)
     assert any(finding.rule_id == "PW003" and finding.path == "计算.py" for finding in findings)
+
+
+def test_is_shallow_repository_reads_git_shallow_file(tmp_path: Path) -> None:
+    root = _repo(tmp_path)
+    (root / "keep.py").write_text("ok\n", encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "base")
+    assert is_shallow_repository(root) is False
+    head = git(root, "rev-parse", "HEAD").stdout.strip()
+    (root / ".git" / "shallow").write_text(head + "\n", encoding="utf-8")
+    assert is_shallow_repository(root) is True
 
 
 def test_collect_changes_on_detached_head(tmp_path: Path) -> None:
