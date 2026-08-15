@@ -101,6 +101,15 @@ patchwitness mcp --root .
 
 Exit codes: `0` pass, `1` gate failure, `2` usage/runtime error.
 
+## Related tools
+
+These answer different questions and do not depend on each other:
+
+- [GuardSpec](https://github.com/pangxueyuan2-creator/guardspec) — before work starts, check the repository’s explicit agent rules against a proposed path or command
+- [TaskToPR](https://github.com/pangxueyuan2-creator/tasktopr) — turn one Issue into an isolated branch, run real tests, leave evidence, optionally open a PR
+
+Use any combination, or none of them.
+
 ## Status
 
 Public alpha (v0.2.x). Evidence schema v1 is stable.  
