@@ -41,3 +41,42 @@ def test_enforces_budgets_and_dependency_surface() -> None:
         [change("src/app.py", additions=4), change("package-lock.json")],
     )
     assert {finding.rule_id for finding in findings} == {"PW005", "PW010", "PW011"}
+
+
+def test_directory_patterns_and_trailing_slash() -> None:
+    # "src/" and "src/**" should both cover the directory tree
+    for pattern in ("src/", "src/**"):
+        contract = Contract(allowed_paths=(pattern,), require_tests=False)
+        findings = evaluate_policy(
+            contract,
+            [change("src/app.py"), change("src/utils/helper.py"), change("docs/readme.md")],
+        )
+        paths = {f.path for f in findings if f.rule_id == "PW002"}
+        assert "docs/readme.md" in paths
+        assert "src/app.py" not in paths
+        assert "src/utils/helper.py" not in paths
+
+
+def test_exact_path_and_nested_prefix() -> None:
+    contract = Contract(allowed_paths=("src/app.py",), require_tests=False)
+    findings = evaluate_policy(
+        contract,
+        [change("src/app.py"), change("src/app.py.bak"), change("src/other.py")],
+    )
+    paths = {f.path for f in findings if f.rule_id == "PW002"}
+    assert "src/app.py" not in paths
+    assert "src/app.py.bak" in paths
+    assert "src/other.py" in paths
+
+
+def test_protected_directory_blocks_nested() -> None:
+    contract = Contract(
+        protected_paths=(".github/",),
+        require_tests=False,
+    )
+    findings = evaluate_policy(
+        contract,
+        [change(".github/workflows/ci.yml"), change(".github/CODEOWNERS")],
+    )
+    assert all(f.rule_id == "PW003" for f in findings)
+    assert {f.path for f in findings} == {".github/workflows/ci.yml", ".github/CODEOWNERS"}
