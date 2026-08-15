@@ -15,6 +15,9 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Exclusive-allow contracts no longer treat PatchWitness cache, TaskToPR evidence, or local bytecode as out-of-scope changes.
 - `python -m patchwitness --json gate` reports `ok` from the evidence status instead of always `true`.
 - The advisory PowerShell hook falls back to the current directory when `git rev-parse --show-toplevel` is not a usable path (Unicode code-page mismatch on Windows).
+- Required checks now run as argv with `shell=False`. Compiled `agent-boundary` checks are untrusted: shell interpreters, `python -c` / `node --eval` payloads, and shell tokens are refused (exit 126). Missing executables become check failures (exit 127) instead of crashing the gate.
+- Check argv splitting keeps Windows paths and quoted payloads intact instead of using `shlex` (which left stray quotes or swallowed backslashes).
+- Bare `python` is resolved through PATH / the running virtualenv so Windows App Execution Aliases do not silently launch a global interpreter without project test tools.
 
 ### Added
 

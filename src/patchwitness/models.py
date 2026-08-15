@@ -24,6 +24,7 @@ class CheckSpec:
     command: str
     required: bool = True
     timeout_seconds: int = 900
+    trusted: bool = True
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> CheckSpec:
@@ -32,6 +33,7 @@ class CheckSpec:
             command=str(value["command"]),
             required=bool(value.get("required", True)),
             timeout_seconds=int(value.get("timeout_seconds", 900)),
+            trusted=bool(value.get("trusted", True)),
         )
 
 
@@ -42,15 +44,24 @@ def _slug_command(command: str) -> str:
     return slug.strip("-")[:40] or "check"
 
 
-def _as_check_specs(raw: Any) -> tuple[CheckSpec, ...]:
+def _as_check_specs(raw: Any, *, trusted: bool = True) -> tuple[CheckSpec, ...]:
     checks: list[CheckSpec] = []
     if not raw:
         return ()
     for item in raw:
         if isinstance(item, str):
-            checks.append(CheckSpec(id=_slug_command(item), command=item))
+            checks.append(CheckSpec(id=_slug_command(item), command=item, trusted=trusted))
         elif isinstance(item, dict):
-            checks.append(CheckSpec.from_dict(item))
+            parsed = CheckSpec.from_dict(item)
+            if not trusted:
+                parsed = CheckSpec(
+                    id=parsed.id,
+                    command=parsed.command,
+                    required=parsed.required,
+                    timeout_seconds=parsed.timeout_seconds,
+                    trusted=False,
+                )
+            checks.append(parsed)
         else:
             raise TypeError(f"unsupported check spec: {item!r}")
     return tuple(checks)
@@ -124,7 +135,10 @@ class Contract:
             allowed = tuple(str(item) for item in raw_allowed)
             if not allowed and not exclusive:
                 allowed = ("**",)
-        checks = _as_check_specs(value.get("required_checks", value.get("checks", ())))
+        checks = _as_check_specs(
+            value.get("required_checks", value.get("checks", ())),
+            trusted=False,
+        )
         return cls(
             id=str(value.get("id", "default")),
             goal=str(value.get("goal", "Verify the current repository change")),

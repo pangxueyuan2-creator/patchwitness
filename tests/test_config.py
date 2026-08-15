@@ -63,6 +63,7 @@ def test_loads_agent_boundary_json(tmp_path: Path) -> None:
     assert contract.protected_paths == (".github/workflows/**",)
     assert contract.require_tests is True
     assert [check.command for check in contract.checks] == ["python -m pytest"]
+    assert all(check.trusted is False for check in contract.checks)
 
 
 def test_exclusive_empty_boundary_denies_all(tmp_path: Path) -> None:
