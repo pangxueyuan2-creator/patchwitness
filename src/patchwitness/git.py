@@ -16,6 +16,39 @@ class GitError(RuntimeError):
     """Raised when repository facts cannot be collected."""
 
 
+_UNTRACKED_NOISE_PARTS = frozenset(
+    {
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".tox",
+        ".nox",
+        ".eggs",
+        ".tasktopr",
+        "node_modules",
+        ".venv",
+        "venv",
+    }
+)
+_UNTRACKED_NOISE_SUFFIXES = (".pyc", ".pyo", ".pyd")
+
+
+def is_untracked_noise(path: str) -> bool:
+    """Return True for local caches and tool evidence that are not review surface.
+
+    Untracked inclusion exists to catch sneaky new files. Bytecode, virtualenvs,
+    and per-run evidence directories are not that surface.
+    """
+
+    normalized = path.replace("\\", "/")
+    if normalized.startswith((".patchwitness/evidence/", ".patchwitness/cache/")):
+        return True
+    if normalized.endswith(_UNTRACKED_NOISE_SUFFIXES):
+        return True
+    return any(part in _UNTRACKED_NOISE_PARTS for part in normalized.split("/"))
+
+
 def find_root(start: Path | None = None) -> Path:
     cwd = (start or Path.cwd()).resolve()
     result = _run(cwd, "rev-parse", "--show-toplevel", check=False)
@@ -61,54 +94,51 @@ def load_file_at_revision(root: Path, revision: str, relative_path: str) -> byte
 
 def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     status_result = _run(
-        root, "diff", "--name-status", "--find-renames", "--no-ext-diff", base_revision, "--"
+        root,
+        "diff",
+        "--name-status",
+        "-z",
+        "--find-renames",
+        "--no-ext-diff",
+        base_revision,
+        "--",
     )
-    statuses: dict[str, str] = {}
-    for line in status_result.stdout.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        code = parts[0]
-        path = parts[-1].replace("\\", "/")
-        statuses[path] = code
+    statuses: dict[str, tuple[str, str | None]] = {}
+    for dest, status, previous in _parse_name_status_z(status_result.stdout):
+        statuses[dest] = (status, previous)
 
-    numstat_result = _run(root, "diff", "--numstat", "--no-ext-diff", base_revision, "--")
-    stats: dict[str, tuple[int, int, bool]] = {}
-    for line in numstat_result.stdout.splitlines():
-        parts = line.split("\t", 2)
-        if len(parts) != 3:
-            continue
-        added_text, deleted_text, path = parts
-        path = _normalize_rename_path(path)
-        binary = added_text == "-" or deleted_text == "-"
-        stats[path] = (
-            0 if binary else int(added_text),
-            0 if binary else int(deleted_text),
-            binary,
-        )
+    numstat_result = _run(
+        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff", base_revision, "--"
+    )
+    stats = _parse_numstat_z(numstat_result.stdout)
 
     untracked_result = _run(root, "ls-files", "--others", "--exclude-standard", "-z")
     for raw_path in untracked_result.stdout.split("\0"):
         if not raw_path:
             continue
         path = raw_path.replace("\\", "/")
-        if path.startswith(".patchwitness/evidence/"):
+        if is_untracked_noise(path):
             continue
-        statuses[path] = "A"
+        statuses[path] = ("A", None)
         full_path = root / path
         binary = _is_binary(full_path)
         lines = 0 if binary else _count_lines(full_path)
         stats[path] = (lines, 0, binary)
 
-    before_paths = [path for path, status in statuses.items() if not status.startswith("A")]
-    before_hashes = _batch_git_blob_sha256(root, base_revision, before_paths)
-    after_paths = [path for path, status in statuses.items() if not status.startswith("D")]
+    before_keys: list[str] = []
+    for dest, (status, previous) in statuses.items():
+        if status.startswith("A"):
+            continue
+        before_keys.append(previous if previous else dest)
+    before_hashes = _batch_git_blob_sha256(root, base_revision, list(dict.fromkeys(before_keys)))
+    after_paths = [path for path, (status, _) in statuses.items() if not status.startswith("D")]
     after_hashes = _parallel_file_sha256(root, after_paths)
     changes: list[FileChange] = []
     for path in sorted(statuses):
+        status, previous = statuses[path]
         additions, deletions, binary = stats.get(path, (0, 0, False))
-        status = statuses[path]
-        before = before_hashes.get(path)
+        before_key = previous if previous else path
+        before = None if status.startswith("A") else before_hashes.get(before_key)
         after = after_hashes.get(path)
         changes.append(
             FileChange(
@@ -119,9 +149,69 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
                 binary=binary,
                 before_sha256=before,
                 after_sha256=after,
+                previous_path=previous,
             )
         )
     return tuple(changes)
+
+
+def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
+    """Parse `git diff --name-status -z`. Rename/copy is STATUS\\0old\\0new\\0."""
+
+    tokens = [token for token in payload.split("\0") if token != ""]
+    records: list[tuple[str, str, str | None]] = []
+    index = 0
+    while index < len(tokens):
+        status = tokens[index]
+        letter = status[:1] if status else ""
+        if letter in {"R", "C"}:
+            if index + 2 >= len(tokens):
+                break
+            previous = tokens[index + 1].replace("\\", "/")
+            dest = tokens[index + 2].replace("\\", "/")
+            records.append((dest, status, previous))
+            index += 3
+            continue
+        if index + 1 >= len(tokens):
+            break
+        dest = tokens[index + 1].replace("\\", "/")
+        records.append((dest, status, None))
+        index += 2
+    return records
+
+
+def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
+    """Parse `git diff --numstat -z`. Rename is added\\tdeleted\\0old\\0new\\0."""
+
+    tokens = [token for token in payload.split("\0") if token != ""]
+    stats: dict[str, tuple[int, int, bool]] = {}
+    index = 0
+    while index < len(tokens):
+        parts = tokens[index].split("\t")
+        if len(parts) == 3:
+            added_text, deleted_text, path = parts
+            dest = _normalize_rename_path(path)
+            binary = added_text == "-" or deleted_text == "-"
+            stats[dest] = (
+                0 if binary else int(added_text),
+                0 if binary else int(deleted_text),
+                binary,
+            )
+            index += 1
+            continue
+        if len(parts) == 2 and index + 2 < len(tokens):
+            added_text, deleted_text = parts
+            dest = tokens[index + 2].replace("\\", "/")
+            binary = added_text == "-" or deleted_text == "-"
+            stats[dest] = (
+                0 if binary else int(added_text),
+                0 if binary else int(deleted_text),
+                binary,
+            )
+            index += 3
+            continue
+        index += 1
+    return stats
 
 
 def is_dirty(root: Path) -> bool:

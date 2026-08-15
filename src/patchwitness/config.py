@@ -52,12 +52,41 @@ def load_contract(path: Path) -> Contract:
 
 def load_contract_bytes(raw: bytes, *, source: str = "<memory>") -> Contract:
     try:
-        value = tomllib.loads(raw.decode("utf-8"))
-        contract = Contract.from_dict(value)
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError, KeyError, TypeError, ValueError) as exc:
+        text = raw.decode("utf-8")
+        stripped = text.lstrip()
+        if stripped.startswith("{"):
+            value = json.loads(text)
+            if not isinstance(value, dict):
+                raise TypeError("JSON contract must be an object")
+            contract = (
+                Contract.from_boundary(value) if _is_boundary(value) else Contract.from_dict(value)
+            )
+        else:
+            value = tomllib.loads(text)
+            contract = Contract.from_dict(value)
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        tomllib.TOMLDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
         raise ConfigError(f"invalid contract {source}: {exc}") from exc
     _validate(contract, source)
     return contract
+
+
+def _is_boundary(value: dict[str, object]) -> bool:
+    schema = str(value.get("schema", ""))
+    if "agent-boundary/v1" in schema:
+        return True
+    return (
+        value.get("version") == 1
+        and "allowed_paths" in value
+        and "policy" not in value
+        and "schema" in value
+    )
 
 
 def _validate(contract: Contract, source: str) -> None:

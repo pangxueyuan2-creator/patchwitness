@@ -80,3 +80,57 @@ def test_protected_directory_blocks_nested() -> None:
     )
     assert all(f.rule_id == "PW003" for f in findings)
     assert {f.path for f in findings} == {".github/workflows/ci.yml", ".github/CODEOWNERS"}
+
+
+def test_single_star_does_not_cross_directories() -> None:
+    contract = Contract(allowed_paths=("src/*.py",), require_tests=False)
+    findings = evaluate_policy(
+        contract,
+        [change("src/app.py"), change("src/nested/deep.py"), change("docs/readme.md")],
+    )
+    paths = {finding.path for finding in findings if finding.rule_id == "PW002"}
+    assert "src/app.py" not in paths
+    assert "src/nested/deep.py" in paths
+    assert "docs/readme.md" in paths
+
+
+def test_exclusive_empty_allow_denies_every_path() -> None:
+    contract = Contract(allowed_paths=(), exclusive_allow=True, require_tests=False)
+    findings = evaluate_policy(contract, [change("src/app.py")])
+    assert any(finding.rule_id == "PW002" for finding in findings)
+
+
+def test_rename_from_protected_path_is_blocked() -> None:
+    contract = Contract(
+        allowed_paths=("src/**", "helper.py"),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    renamed = FileChange(
+        "helper.py",
+        "R100",
+        0,
+        0,
+        False,
+        "before",
+        "after",
+        ".github/workflows/ci.yml",
+    )
+    findings = evaluate_policy(contract, [renamed])
+    assert any(finding.rule_id == "PW003" and finding.path == "helper.py" for finding in findings)
+
+
+def test_rename_out_of_allowed_source_is_blocked() -> None:
+    contract = Contract(allowed_paths=("src/**",), require_tests=False)
+    renamed = FileChange(
+        "src/helper.py",
+        "R100",
+        0,
+        0,
+        False,
+        "before",
+        "after",
+        "docs/secret.md",
+    )
+    findings = evaluate_policy(contract, [renamed])
+    assert any(finding.rule_id == "PW002" and finding.path == "src/helper.py" for finding in findings)

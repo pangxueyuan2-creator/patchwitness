@@ -9,6 +9,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 
+from patchwitness.git import is_untracked_noise
+
 
 class CleanRoomError(RuntimeError):
     """Raised when a clean verifier worktree cannot be materialized."""
@@ -80,7 +82,7 @@ def _copy_untracked(root: Path, worktree: Path) -> None:
     if result.returncode != 0:
         raise CleanRoomError(f"cannot enumerate untracked files: {result.stderr.strip()}")
     for raw in result.stdout.split("\0"):
-        if not raw or raw.startswith(".patchwitness/evidence/"):
+        if not raw or is_untracked_noise(raw):
             continue
         source = root / raw
         target = worktree / raw

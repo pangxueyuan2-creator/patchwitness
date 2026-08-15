@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import fnmatch
+import re
 from collections.abc import Iterable
+from functools import lru_cache
 from pathlib import PurePosixPath
 
 from patchwitness.models import CheckResult, Contract, FileChange, Finding, Severity
@@ -38,15 +39,33 @@ def evaluate_policy(
     findings: list[Finding] = []
 
     for item in changed:
-        if _matches_any(item.path, contract.denied_paths):
+        subject_paths = item.policy_paths
+        if any(_matches_any(path, contract.denied_paths) for path in subject_paths):
             findings.append(
                 Finding("PW001", Severity.ERROR, "path matches a denied pattern", item.path)
             )
-        if contract.allowed_paths and not _matches_any(item.path, contract.allowed_paths):
-            findings.append(
-                Finding("PW002", Severity.ERROR, "path is outside the approved scope", item.path)
-            )
-        if _matches_any(item.path, contract.protected_paths):
+        if contract.exclusive_allow or contract.allowed_paths:
+            if contract.exclusive_allow and not contract.allowed_paths:
+                findings.append(
+                    Finding(
+                        "PW002",
+                        Severity.ERROR,
+                        "path is outside the approved scope",
+                        item.path,
+                    )
+                )
+            elif contract.allowed_paths and not all(
+                _matches_any(path, contract.allowed_paths) for path in subject_paths
+            ):
+                findings.append(
+                    Finding(
+                        "PW002",
+                        Severity.ERROR,
+                        "path is outside the approved scope",
+                        item.path,
+                    )
+                )
+        if any(_matches_any(path, contract.protected_paths) for path in subject_paths):
             findings.append(
                 Finding(
                     "PW003",
@@ -59,9 +78,8 @@ def evaluate_policy(
             findings.append(
                 Finding("PW004", Severity.ERROR, "binary changes are not allowed", item.path)
             )
-        if (
-            PurePosixPath(item.path.lower()).name in DEPENDENCY_FILES
-            and not contract.allow_dependency_changes
+        if not contract.allow_dependency_changes and any(
+            PurePosixPath(path.lower()).name in DEPENDENCY_FILES for path in subject_paths
         ):
             findings.append(
                 Finding(
@@ -120,7 +138,8 @@ def _matches(path: str, pattern: str) -> bool:
 
     Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
     patterns ending with / or /** match the directory itself and everything
-    under it. Plain * / ** still match everything.
+    under it. A single * or ? never crosses a path separator; use ** to
+    match across directories.
     """
     normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
@@ -134,17 +153,44 @@ def _matches(path: str, pattern: str) -> bool:
         if not prefix:
             return True
         return path == prefix or path.startswith(prefix + "/")
-    if normalized.endswith("/"):
+    if normalized.endswith("/") and "*" not in normalized and "?" not in normalized:
         prefix = normalized.rstrip("/")
         if not prefix:
             return True
         return path == prefix or path.startswith(prefix + "/")
 
-    # exact or simple glob
-    if "*" not in normalized and "?" not in normalized and "[" not in normalized:
+    if "*" not in normalized and "?" not in normalized:
         return path == normalized or path.startswith(normalized + "/")
 
-    return fnmatch.fnmatchcase(path, normalized)
+    return _glob_regex(normalized).fullmatch(path) is not None
+
+
+@lru_cache(maxsize=256)
+def _glob_regex(pattern: str) -> re.Pattern[str]:
+    """Compile a policy glob where * and ? do not cross '/'."""
+
+    pieces: list[str] = []
+    index = 0
+    while index < len(pattern):
+        character = pattern[index]
+        if character == "*":
+            if index + 1 < len(pattern) and pattern[index + 1] == "*":
+                index += 2
+                if index < len(pattern) and pattern[index] == "/":
+                    pieces.append("(?:.*/)?")
+                    index += 1
+                else:
+                    pieces.append(".*")
+            else:
+                pieces.append("[^/]*")
+                index += 1
+        elif character == "?":
+            pieces.append("[^/]")
+            index += 1
+        else:
+            pieces.append(re.escape(character))
+            index += 1
+    return re.compile("^" + "".join(pieces) + "$")
 
 
 def _deduplicate(findings: Iterable[Finding]) -> list[Finding]:

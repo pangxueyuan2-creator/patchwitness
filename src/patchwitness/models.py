@@ -35,6 +35,27 @@ class CheckSpec:
         )
 
 
+def _slug_command(command: str) -> str:
+    slug = "".join(character.lower() if character.isalnum() else "-" for character in command)
+    while "--" in slug:
+        slug = slug.replace("--", "-")
+    return slug.strip("-")[:40] or "check"
+
+
+def _as_check_specs(raw: Any) -> tuple[CheckSpec, ...]:
+    checks: list[CheckSpec] = []
+    if not raw:
+        return ()
+    for item in raw:
+        if isinstance(item, str):
+            checks.append(CheckSpec(id=_slug_command(item), command=item))
+        elif isinstance(item, dict):
+            checks.append(CheckSpec.from_dict(item))
+        else:
+            raise TypeError(f"unsupported check spec: {item!r}")
+    return tuple(checks)
+
+
 @dataclass(frozen=True, slots=True)
 class Contract:
     id: str = "default"
@@ -52,11 +73,12 @@ class Contract:
     allow_dependency_changes: bool = False
     require_tests: bool = True
     checks: tuple[CheckSpec, ...] = ()
+    exclusive_allow: bool = False
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> Contract:
         policy = value.get("policy", value)
-        checks = tuple(CheckSpec.from_dict(item) for item in value.get("checks", ()))
+        checks = _as_check_specs(value.get("checks", ()))
         return cls(
             id=str(value.get("id", "default")),
             goal=str(value.get("goal", "Verify the current repository change")),
@@ -82,6 +104,53 @@ class Contract:
             allow_dependency_changes=bool(policy.get("allow_dependency_changes", False)),
             require_tests=bool(policy.get("require_tests", True)),
             checks=checks,
+            exclusive_allow=bool(
+                policy.get("exclusive_allow", value.get("exclusive_allow", False))
+            ),
+        )
+
+    @classmethod
+    def from_boundary(cls, value: dict[str, Any]) -> Contract:
+        """Load an independent agent-boundary/v1 document.
+
+        Empty allowed_paths means allow-all unless exclusive_allow is set,
+        in which case every path is outside scope.
+        """
+        exclusive = bool(value.get("exclusive_allow", False))
+        raw_allowed = value.get("allowed_paths")
+        if raw_allowed is None:
+            allowed: tuple[str, ...] = () if exclusive else ("**",)
+        else:
+            allowed = tuple(str(item) for item in raw_allowed)
+            if not allowed and not exclusive:
+                allowed = ("**",)
+        checks = _as_check_specs(value.get("required_checks", value.get("checks", ())))
+        return cls(
+            id=str(value.get("id", "default")),
+            goal=str(value.get("goal", "Verify the current repository change")),
+            allowed_paths=allowed,
+            denied_paths=tuple(
+                str(item)
+                for item in value.get("denied_paths", (".git/**", ".patchwitness/evidence/**"))
+            ),
+            protected_paths=tuple(
+                str(item)
+                for item in value.get(
+                    "protected_paths",
+                    (
+                        ".github/workflows/**",
+                        ".patchwitness.toml",
+                        ".patchwitness/contracts/**",
+                    ),
+                )
+            ),
+            max_files=int(value.get("max_files", 50)),
+            max_lines=int(value.get("max_lines", 2_000)),
+            allow_binary=bool(value.get("allow_binary", False)),
+            allow_dependency_changes=bool(value.get("allow_dependency_changes", False)),
+            require_tests=bool(value.get("require_tests", bool(checks))),
+            checks=checks,
+            exclusive_allow=exclusive,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -97,10 +166,17 @@ class FileChange:
     binary: bool
     before_sha256: str | None
     after_sha256: str | None
+    previous_path: str | None = None
 
     @property
     def changed_lines(self) -> int:
         return self.additions + self.deletions
+
+    @property
+    def policy_paths(self) -> tuple[str, ...]:
+        if self.previous_path and self.previous_path != self.path:
+            return (self.path, self.previous_path)
+        return (self.path,)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

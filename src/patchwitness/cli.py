@@ -561,7 +561,11 @@ def _print_pack(pack: EvidencePack, *, output: Path, json_output: bool) -> None:
     if json_output:
         print(
             json.dumps(
-                {"ok": True, "evidence": str(output), **pack.summary},
+                {
+                    "ok": pack.status == GateStatus.PASS,
+                    "evidence": str(output),
+                    **pack.summary,
+                },
                 sort_keys=True,
             )
         )
