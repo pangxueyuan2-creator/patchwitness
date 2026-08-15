@@ -1,0 +1,35 @@
+{
+  "benchmark_version": 1,
+  "disclaimer": "Local synthetic benchmark; compare only on similar hardware and settings.",
+  "environment": {
+    "machine": "AMD64",
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.14.5"
+  },
+  "measured_at": "2026-08-15T08:56:36Z",
+  "parameters": {
+    "changed_files": 50,
+    "repository_files": 250,
+    "rounds": 5
+  },
+  "results_ms": {
+    "git_change_collection": {
+      "max": 276.766,
+      "median": 263.315,
+      "min": 239.248,
+      "p95": 276.766
+    },
+    "impact_cold": {
+      "max": 151.056,
+      "median": 28.378,
+      "min": 19.388,
+      "p95": 151.056
+    },
+    "impact_warm": {
+      "max": 7.049,
+      "median": 4.655,
+      "min": 3.923,
+      "p95": 7.049
+    }
+  }
+}
