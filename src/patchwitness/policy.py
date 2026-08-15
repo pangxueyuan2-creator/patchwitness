@@ -116,13 +116,34 @@ def _matches_any(path: str, patterns: Iterable[str]) -> bool:
 
 
 def _matches(path: str, pattern: str) -> bool:
-    normalized = pattern.replace("\\", "/")
+    """Match a repository-relative path against a policy pattern.
+
+    Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
+    patterns ending with / or /** match the directory itself and everything
+    under it. Plain * / ** still match everything.
+    """
+    normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
         normalized = normalized[2:]
-    if normalized in {"*", "**", "**/*"}:
+    if not normalized or normalized in {"*", "**", "**/*"}:
         return True
-    if normalized.endswith("/**") and path == normalized[:-3].rstrip("/"):
-        return True
+
+    # directory form: "src/" or "src/**"
+    if normalized.endswith("/**"):
+        prefix = normalized[:-3].rstrip("/")
+        if not prefix:
+            return True
+        return path == prefix or path.startswith(prefix + "/")
+    if normalized.endswith("/"):
+        prefix = normalized.rstrip("/")
+        if not prefix:
+            return True
+        return path == prefix or path.startswith(prefix + "/")
+
+    # exact or simple glob
+    if "*" not in normalized and "?" not in normalized and "[" not in normalized:
+        return path == normalized or path.startswith(normalized + "/")
+
     return fnmatch.fnmatchcase(path, normalized)
 
 
