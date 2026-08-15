@@ -45,7 +45,10 @@ def test_collects_rename_previous_path(tmp_path: Path) -> None:
         require_tests=False,
     )
     findings = evaluate_policy(contract, changes)
-    assert any(finding.rule_id == "PW003" and finding.path == "helper.py" for finding in findings)
+    assert any(
+        finding.rule_id == "PW003" and finding.path == ".github/workflows/ci.yml"
+        for finding in findings
+    )
 
 
 def test_nul_terminated_paths_with_spaces_and_unicode(tmp_path: Path) -> None:
