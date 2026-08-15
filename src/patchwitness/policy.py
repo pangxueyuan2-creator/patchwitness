@@ -39,56 +39,50 @@ def evaluate_policy(
     findings: list[Finding] = []
 
     for item in changed:
-        subject_paths = item.policy_paths
-        if any(_matches_any(path, contract.denied_paths) for path in subject_paths):
-            findings.append(
-                Finding("PW001", Severity.ERROR, "path matches a denied pattern", item.path)
-            )
-        if contract.exclusive_allow or contract.allowed_paths:
+        for policy_path in item.policy_paths:
+            if _matches_any(policy_path, contract.denied_paths):
+                findings.append(
+                    Finding("PW001", Severity.ERROR, "path matches a denied pattern", policy_path)
+                )
             if contract.exclusive_allow and not contract.allowed_paths:
                 findings.append(
                     Finding(
                         "PW002",
                         Severity.ERROR,
                         "path is outside the approved scope",
-                        item.path,
+                        policy_path,
                     )
                 )
-            elif contract.allowed_paths and not all(
-                _matches_any(path, contract.allowed_paths) for path in subject_paths
-            ):
+            elif contract.allowed_paths and not _matches_any(policy_path, contract.allowed_paths):
                 findings.append(
                     Finding(
-                        "PW002",
-                        Severity.ERROR,
-                        "path is outside the approved scope",
-                        item.path,
+                        "PW002", Severity.ERROR, "path is outside the approved scope", policy_path
                     )
                 )
-        if any(_matches_any(path, contract.protected_paths) for path in subject_paths):
-            findings.append(
-                Finding(
-                    "PW003",
-                    Severity.ERROR,
-                    "protected verification or control-plane file changed",
-                    item.path,
+            if _matches_any(policy_path, contract.protected_paths):
+                findings.append(
+                    Finding(
+                        "PW003",
+                        Severity.ERROR,
+                        "protected verification or control-plane file changed",
+                        policy_path,
+                    )
                 )
-            )
         if item.binary and not contract.allow_binary:
             findings.append(
                 Finding("PW004", Severity.ERROR, "binary changes are not allowed", item.path)
             )
-        if not contract.allow_dependency_changes and any(
-            PurePosixPath(path.lower()).name in DEPENDENCY_FILES for path in subject_paths
-        ):
-            findings.append(
-                Finding(
-                    "PW005",
-                    Severity.ERROR,
-                    "dependency surface changed without explicit permission",
-                    item.path,
-                )
-            )
+        if not contract.allow_dependency_changes:
+            for policy_path in item.policy_paths:
+                if PurePosixPath(policy_path.lower()).name in DEPENDENCY_FILES:
+                    findings.append(
+                        Finding(
+                            "PW005",
+                            Severity.ERROR,
+                            "dependency surface changed without explicit permission",
+                            policy_path,
+                        )
+                    )
 
     if len(changed) > contract.max_files:
         findings.append(

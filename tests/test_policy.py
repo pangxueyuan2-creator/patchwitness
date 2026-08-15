@@ -117,7 +117,10 @@ def test_rename_from_protected_path_is_blocked() -> None:
         ".github/workflows/ci.yml",
     )
     findings = evaluate_policy(contract, [renamed])
-    assert any(finding.rule_id == "PW003" and finding.path == "helper.py" for finding in findings)
+    assert any(
+        finding.rule_id == "PW003" and finding.path == ".github/workflows/ci.yml"
+        for finding in findings
+    )
 
 
 def test_rename_out_of_allowed_source_is_blocked() -> None:
@@ -133,4 +136,29 @@ def test_rename_out_of_allowed_source_is_blocked() -> None:
         "docs/secret.md",
     )
     findings = evaluate_policy(contract, [renamed])
-    assert any(finding.rule_id == "PW002" and finding.path == "src/helper.py" for finding in findings)
+    assert any(finding.rule_id == "PW002" and finding.path == "docs/secret.md" for finding in findings)
+
+
+def test_rename_cannot_move_a_protected_path_into_allowed_scope() -> None:
+    contract = Contract(
+        allowed_paths=("src/**",),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    renamed = FileChange(
+        "src/ci.yml",
+        "R100",
+        0,
+        0,
+        False,
+        "before",
+        "after",
+        previous_path=".github/workflows/ci.yml",
+    )
+
+    findings = evaluate_policy(contract, [renamed])
+
+    assert {(finding.rule_id, finding.path) for finding in findings} == {
+        ("PW002", ".github/workflows/ci.yml"),
+        ("PW003", ".github/workflows/ci.yml"),
+    }

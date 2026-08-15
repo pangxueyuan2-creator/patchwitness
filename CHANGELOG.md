@@ -18,6 +18,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Required checks now run as argv with `shell=False`. Compiled `agent-boundary` checks are untrusted: shell interpreters, `python -c` / `node --eval` payloads, and shell tokens are refused (exit 126). Missing executables become check failures (exit 127) instead of crashing the gate.
 - Check argv splitting keeps Windows paths and quoted payloads intact instead of using `shlex` (which left stray quotes or swallowed backslashes).
 - Bare `python` is resolved through PATH / the running virtualenv so Windows App Execution Aliases do not silently launch a global interpreter without project test tools.
+- Rename and copy findings now cite the matching source or destination path, so moving a protected file into an allowed directory still fails on the source (`#16`).
 
 ### Added
 
