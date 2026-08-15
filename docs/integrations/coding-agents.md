@@ -91,3 +91,9 @@ Keep the CI-produced Change Passport as the review artifact. The local passport 
 debugging and comparison, but the CI passport is the one produced outside the agent-controlled
 working environment. If the two disagree, investigate the environment, resolved base SHA, policy
 source, and executed checks instead of accepting either summary blindly.
+
+## Optional companion tools
+
+If you also want a preflight against repository instruction files (AGENTS.md, CLAUDE.md, etc.) or a structured Issue → branch → test → PR path, see the short combined note:
+
+[Using GuardSpec, TaskToPR, and PatchWitness together](guardspec-and-tasktopr.md)
