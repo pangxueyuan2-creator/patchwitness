@@ -97,6 +97,7 @@ class FileChange:
     binary: bool
     before_sha256: str | None
     after_sha256: str | None
+    previous_path: str | None = None
 
     @property
     def changed_lines(self) -> int:

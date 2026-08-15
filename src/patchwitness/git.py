@@ -63,14 +63,19 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     status_result = _run(
         root, "diff", "--name-status", "--find-renames", "--no-ext-diff", base_revision, "--"
     )
-    statuses: dict[str, str] = {}
+    statuses: dict[str, tuple[str, str | None]] = {}
     for line in status_result.stdout.splitlines():
         parts = line.split("\t")
         if len(parts) < 2:
             continue
         code = parts[0]
         path = parts[-1].replace("\\", "/")
-        statuses[path] = code
+        previous_path = (
+            parts[-2].replace("\\", "/")
+            if code.startswith(("R", "C")) and len(parts) >= 3
+            else None
+        )
+        statuses[path] = (code, previous_path)
 
     numstat_result = _run(root, "diff", "--numstat", "--no-ext-diff", base_revision, "--")
     stats: dict[str, tuple[int, int, bool]] = {}
@@ -94,21 +99,27 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         path = raw_path.replace("\\", "/")
         if path.startswith(".patchwitness/evidence/"):
             continue
-        statuses[path] = "A"
+        statuses[path] = ("A", None)
         full_path = root / path
         binary = _is_binary(full_path)
         lines = 0 if binary else _count_lines(full_path)
         stats[path] = (lines, 0, binary)
 
-    before_paths = [path for path, status in statuses.items() if not status.startswith("A")]
+    before_paths = [
+        previous_path or path
+        for path, (status, previous_path) in statuses.items()
+        if not status.startswith("A")
+    ]
     before_hashes = _batch_git_blob_sha256(root, base_revision, before_paths)
-    after_paths = [path for path, status in statuses.items() if not status.startswith("D")]
+    after_paths = [
+        path for path, (status, _previous_path) in statuses.items() if not status.startswith("D")
+    ]
     after_hashes = _parallel_file_sha256(root, after_paths)
     changes: list[FileChange] = []
     for path in sorted(statuses):
         additions, deletions, binary = stats.get(path, (0, 0, False))
-        status = statuses[path]
-        before = before_hashes.get(path)
+        status, previous_path = statuses[path]
+        before = before_hashes.get(previous_path or path)
         after = after_hashes.get(path)
         changes.append(
             FileChange(
@@ -119,6 +130,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
                 binary=binary,
                 before_sha256=before,
                 after_sha256=after,
+                previous_path=previous_path,
             )
         )
     return tuple(changes)

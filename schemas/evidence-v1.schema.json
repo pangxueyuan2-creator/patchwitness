@@ -46,6 +46,7 @@
         "required": ["path", "status", "additions", "deletions", "binary", "before_sha256", "after_sha256"],
         "properties": {
           "path": { "type": "string" },
+          "previous_path": { "type": ["string", "null"] },
           "status": { "type": "string" },
           "additions": { "type": "integer", "minimum": 0 },
           "deletions": { "type": "integer", "minimum": 0 },
@@ -109,4 +110,3 @@
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
   }
 }
-
