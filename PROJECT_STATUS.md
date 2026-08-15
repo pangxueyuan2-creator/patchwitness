@@ -1,46 +1,27 @@
 # Project status
 
-**Current release:** v0.2.0 public alpha
-
+**Current release:** v0.2.x public alpha  
 **Evidence schema:** v1  
-**Maintainer status:** new project, single primary maintainer  
-**Production claim:** no broad production adoption claimed
+**Maintainer:** single primary maintainer  
+**Production use:** none claimed yet
 
-## Ready now
+## What works now
 
-- Local and CI policy gates over Git changes.
-- Zero-configuration smart scans with deterministic local project detection.
-- Base-authoritative contracts.
-- Real check execution, clean-room worktrees, and evidence verification.
-- Python/JS/TS file dependency impact.
-- SDK, MCP, analyzer plugins, JSON, SARIF, Markdown, and GitHub annotations.
-- Cline `TaskComplete` example validated against the public `agent_end` hook contract; this is a
-  post-task evidence trigger, not a claim of native endorsement or full model-session certification.
-- Automated tests on Python 3.11-3.14 and the three major desktop OS families.
-- Dockerfile with build/run smoke validation in GitHub CI (not locally validated on the initial
-  maintainer machine because Docker is not installed there).
+- Local and CI policy gates over Git changes
+- Zero-config scan with local project detection
+- Policy loaded from a trusted base commit
+- Real test execution + clean-room worktrees
+- Basic dependency impact (Python / JS / TS)
+- JSON evidence, SARIF, SDK, MCP, GitHub Action
 
 ## Known limitations
 
-- Clean-room mode is filesystem isolation, not an OS security sandbox.
-- The dependency graph uses conservative import resolution rather than full compiler semantics.
-- SHA-256 integrity is not identity authentication or non-repudiation.
-- Required checks prove command execution and exit status, not semantic completeness.
-- Plugins run in-process and must be treated as trusted code.
-- No PyPI publication, hosted service, telemetry, or remote evidence store exists at launch.
-- Smart scans recognize common repository conventions; custom test harnesses still need an explicit
-  `--check` or reviewed contract.
+- Clean-room is filesystem isolation, not a real sandbox
+- Dependency graph is conservative, not full type-aware
+- A green passport only proves the recorded checks ran and the scope rules held
+- No PyPI package yet
+- No external production users yet
 
 ## Release bar
 
-Every release must pass tests, Ruff, strict mypy, package build, CLI smoke tests, and PatchWitness's
-own trusted-base clean-room gate. Release artifacts receive GitHub build-provenance attestations,
-and the release workflow rejects tags that do not match the packaged version. Performance claims
-must come from committed raw benchmark output.
-
-## Adoption status
-
-At initial publication there are no legitimate claims of stars, forks, external contributors,
-downloads, dependents, testimonials, or production users. Those metrics will only be added when
-GitHub/package/community sources show real activity. See the dated, source-linked
-[OSS readiness scorecard](OSS_READINESS.md).
+Tests, Ruff, mypy, package build, and the tool's own gate must pass before a release.
