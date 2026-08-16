@@ -8,6 +8,32 @@ def change(
     return FileChange(path, "M", additions, deletions, binary, "before", "after")
 
 
+
+def test_denied_paths_are_blocked() -> None:
+    contract = Contract(
+        allowed_paths=("**",),
+        denied_paths=("src/generated/**",),
+        require_tests=False,
+    )
+    findings = evaluate_policy(
+        contract,
+        [change("src/generated/out.py"), change("src/ok.py")],
+    )
+    pairs = {(finding.rule_id, finding.path) for finding in findings}
+    assert ("PW001", "src/generated/out.py") in pairs
+    assert ("PW001", "src/ok.py") not in pairs
+
+
+def test_deny_wins_over_allow() -> None:
+    contract = Contract(
+        allowed_paths=("**",),
+        denied_paths=("secrets/**",),
+        require_tests=False,
+    )
+    findings = evaluate_policy(contract, [change("secrets/x.txt")])
+    assert any(finding.rule_id == "PW001" for finding in findings)
+    assert not any(finding.rule_id == "PW002" for finding in findings)
+
 def test_rejects_out_of_scope_and_protected_changes() -> None:
     contract = Contract(
         allowed_paths=("src/**",),
