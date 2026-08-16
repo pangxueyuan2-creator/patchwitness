@@ -65,6 +65,16 @@ def _validate(contract: Contract, source: str) -> None:
         raise ConfigError(f"invalid contract {source}: id cannot be empty")
     if contract.max_files < 0 or contract.max_lines < 0:
         raise ConfigError(f"invalid contract {source}: budgets cannot be negative")
+    for field, patterns in (
+        ("allowed_paths", contract.allowed_paths),
+        ("denied_paths", contract.denied_paths),
+        ("protected_paths", contract.protected_paths),
+    ):
+        for pattern in patterns:
+            if not pattern.strip():
+                raise ConfigError(
+                    f"invalid contract {source}: {field} contains an empty pattern"
+                )
     seen: set[str] = set()
     for check in contract.checks:
         if not check.id.strip() or not check.command.strip():

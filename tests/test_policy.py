@@ -8,6 +8,12 @@ def change(
     return FileChange(path, "M", additions, deletions, binary, "before", "after")
 
 
+def test_empty_pattern_matches_nothing_instead_of_everything() -> None:
+    contract = Contract(allowed_paths=("",), require_tests=False)
+    findings = evaluate_policy(contract, [change("secret.txt")])
+    assert [finding.rule_id for finding in findings] == ["PW002"]
+
+
 def test_rejects_out_of_scope_and_protected_changes() -> None:
     contract = Contract(
         allowed_paths=("src/**",),

@@ -17,6 +17,8 @@ def test_copilot_powershell_hook_writes_an_advisory_passport(tmp_path: Path) -> 
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
     git("init", "-b", "main")
@@ -59,6 +61,8 @@ def test_copilot_powershell_hook_writes_an_advisory_passport(tmp_path: Path) -> 
         ],
         cwd=tmp_path,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
         timeout=30,

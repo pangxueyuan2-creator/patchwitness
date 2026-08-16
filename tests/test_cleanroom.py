@@ -104,6 +104,8 @@ def test_clean_room_rejects_untracked_junction_escape(tmp_path: Path) -> None:
         ["cmd", "/c", "mklink", "/J", str(junction), str(outside)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if created.returncode != 0:

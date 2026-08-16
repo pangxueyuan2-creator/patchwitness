@@ -132,7 +132,9 @@ def _matches(path: str, pattern: str) -> bool:
     normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
         normalized = normalized[2:]
-    if not normalized or normalized in {"*", "**", "**/*"}:
+    if not normalized:
+        return False
+    if normalized in {"*", "**", "**/*"}:
         return True
 
     # directory form: "src/" or "src/**"
