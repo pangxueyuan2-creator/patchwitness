@@ -67,6 +67,8 @@ require_tests = false
         [sys.executable, str(hook)],
         input=json.dumps(payload),
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
         timeout=30,
@@ -89,12 +91,66 @@ require_tests = false
     assert "/private/transcript.jsonl" not in evidence_text
 
 
+def test_codex_stop_hook_handles_non_ascii_workspace_path(tmp_path: Path) -> None:
+    workspace = tmp_path / "工作区"
+    workspace.mkdir()
+    git(workspace, "init", "-b", "main")
+    git(workspace, "config", "user.email", "tests@patchwitness.dev")
+    git(workspace, "config", "user.name", "PatchWitness Tests")
+    contract = """\
+version = 1
+id = "codex-hook-nonascii"
+goal = "Protect the verification workflow"
+[policy]
+allowed_paths = ["src/**"]
+protected_paths = [".github/workflows/**"]
+require_tests = false
+"""
+    (workspace / ".patchwitness.toml").write_text(contract, encoding="utf-8")
+    (workspace / "README.md").write_text("base\n", encoding="utf-8")
+    git(workspace, "add", ".")
+    git(workspace, "commit", "-m", "trusted base")
+    (workspace / "src").mkdir()
+    (workspace / "src" / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    payload = {
+        "session_id": "s1",
+        "turn_id": "t1",
+        "cwd": str(workspace),
+        "hook_event_name": "Stop",
+        "model": "fixture-model",
+        "transcript_path": "/private/transcript.jsonl",
+        "prompt": "p",
+        "agent_output": "a",
+    }
+    hook = Path(__file__).parents[1] / "examples" / "codex-hooks" / "Stop.py"
+    result = subprocess.run(
+        [sys.executable, str(hook)],
+        input=json.dumps(payload),
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+        timeout=30,
+        env={**os.environ, "PATCHWITNESS_EXECUTABLE": str(_patchwitness_executable())},
+    )
+
+    assert result.returncode == 0
+    evidence_files = list((workspace / ".patchwitness" / "evidence").glob("codex-stop-*.json"))
+    assert len(evidence_files) == 1
+    pack = verify_evidence(load_evidence(evidence_files[0]))
+    assert pack.summary["status"] == "pass"
+
+
 def test_codex_stop_hook_ignores_non_stop_payload() -> None:
     hook = Path(__file__).parents[1] / "examples" / "codex-hooks" / "Stop.py"
     result = subprocess.run(
         [sys.executable, str(hook)],
         input=json.dumps({"hook_event_name": "PostToolUse", "cwd": "/"}),
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
         timeout=10,
