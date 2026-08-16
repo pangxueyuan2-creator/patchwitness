@@ -91,9 +91,8 @@ def _copy_untracked(root: Path, worktree: Path) -> None:
             resolved_source = source.resolve(strict=True)
             resolved_source.relative_to(repository_root)
         except (OSError, ValueError):
-            raise CleanRoomError(
-                f"untracked path resolves outside repository and is not accepted in clean room: {raw}"
-            ) from None
+            detail = "untracked path resolves outside repository and is not accepted in clean room"
+            raise CleanRoomError(f"{detail}: {raw}") from None
         target.parent.mkdir(parents=True, exist_ok=True)
         if resolved_source.is_file():
             shutil.copy2(resolved_source, target)
