@@ -110,6 +110,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     stats.update(_parse_numstat_z(numstat_result.stdout))
 
     untracked_result = _run(root, "ls-files", "--others", "--exclude-standard", "-z")
+    untracked_paths: list[str] = []
     for raw_path in untracked_result.stdout.split("\0"):
         if not raw_path:
             continue
@@ -117,6 +118,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         if path.startswith(".patchwitness/evidence/"):
             continue
         statuses[path] = ("A", None)
+        untracked_paths.append(path)
         full_path = root / path
         binary = _is_binary(full_path)
         lines = 0 if binary else _count_lines(full_path)
@@ -133,10 +135,10 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         for path, (status, _previous_path) in worktree_statuses.items()
         if not status.startswith("D")
     ]
+    # Untracked files will be committed, so their content is evidence too.
+    worktree_after_paths.extend(untracked_paths)
     after_hashes = _parallel_file_sha256(root, worktree_after_paths)
-    index_after_paths = [
-        path for path in index_only_paths if not statuses[path][0].startswith("D")
-    ]
+    index_after_paths = [path for path in index_only_paths if not statuses[path][0].startswith("D")]
     # ":path" is the index blob; its content is what a commit would record.
     after_hashes.update(_batch_git_blob_sha256(root, "", index_after_paths))
     changes: list[FileChange] = []

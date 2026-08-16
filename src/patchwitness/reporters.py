@@ -26,6 +26,10 @@ RULES: dict[str, tuple[str, str]] = {
     "PW021": ("Failed check", "A required command failed or timed out."),
     "PW022": ("No test definition", "Tests are required but the contract defines no checks."),
     "PW030": ("Possible secret", "A changed file contains a high-confidence secret shape."),
+    "PW031": (
+        "Secret scan skipped",
+        "A changed text file is larger than the scan limit and was not scanned for secrets.",
+    ),
 }
 
 

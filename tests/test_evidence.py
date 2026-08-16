@@ -101,7 +101,7 @@ def test_submodule_pointer_change_at_protected_path_is_blocked(tmp_path: Path) -
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"submodule\"\n[policy]\n"
+        'version = 1\nid = "submodule"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -144,7 +144,7 @@ def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) 
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"staged\"\n[policy]\n"
+        'version = 1\nid = "staged"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -177,7 +177,7 @@ def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> No
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"filemode\"\n[policy]\n"
+        'version = 1\nid = "filemode"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -192,6 +192,39 @@ def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> No
     pack = capture_evidence(tmp_path, contract, execute_checks=False)
     assert pack.status == GateStatus.FAIL
     assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
+
+
+def test_untracked_file_with_secret_fails_gate(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    secret = "sk-" + "abcdefghijklmnopqrstuvwxyz0123456789"
+    (root / "new.py").write_text(f"TOKEN = '{secret}'\n", encoding="utf-8")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    assert pack.status == GateStatus.FAIL
+    change = next(item for item in pack.changes if item["path"] == "new.py")
+    assert change["after_sha256"] is not None
+    detected = [finding for finding in pack.findings if finding["rule_id"] == "PW030"]
+    assert len(detected) == 1
+    assert detected[0]["path"] == "new.py"
+    assert secret not in detected[0]["message"]
+
+
+def test_oversized_file_skips_secret_scan_with_info_and_gate_passes(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    secret = "sk-" + "abcdefghijklmnopqrstuvwxyz0123456789"
+    (root / "big.log").write_bytes(f"token = '{secret}'".encode() + b"\n" + b"a" * 2_000_000)
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    assert pack.status == GateStatus.PASS
+    assert pack.summary["infos"] == 1
+    assert pack.summary["errors"] == 0
+    skipped = [finding for finding in pack.findings if finding["rule_id"] == "PW031"]
+    assert len(skipped) == 1
+    assert skipped[0]["path"] == "big.log"
+    assert not any(finding["rule_id"] == "PW030" for finding in pack.findings)
+    assert secret not in skipped[0]["message"]
 
 
 def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:

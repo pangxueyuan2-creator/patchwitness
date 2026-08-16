@@ -101,6 +101,7 @@ def capture_evidence(
             "checks_total": len(check_results),
             "errors": sum(finding.severity == Severity.ERROR for finding in findings),
             "warnings": sum(finding.severity == Severity.WARNING for finding in findings),
+            "infos": sum(finding.severity == Severity.INFO for finding in findings),
         },
         "captured_at": captured_at,
         "extensions": {

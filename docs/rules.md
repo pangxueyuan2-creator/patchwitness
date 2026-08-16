@@ -47,3 +47,9 @@ The contract requires tests but does not define a check.
 
 A high-confidence secret shape was found in a changed text file. PatchWitness records only the
 secret type, path, and line; the value is never copied into evidence.
+
+## PW031
+
+A changed text file is larger than the 2 MB scan limit, so its secret scan was skipped. This is an
+informational finding: the gate still passes, but the evidence pack records which files were not
+scanned. Lower the limit only after weighing scan cost against the risk of missing a secret.

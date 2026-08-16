@@ -34,7 +34,17 @@ def scan_changed_files(root: Path, changes: Iterable[FileChange]) -> tuple[Findi
         if path is None:
             continue
         try:
-            if path.stat().st_size > MAX_SCAN_BYTES:
+            size = path.stat().st_size
+            if size > MAX_SCAN_BYTES:
+                findings.append(
+                    Finding(
+                        "PW031",
+                        Severity.INFO,
+                        f"secret scan skipped for {change.path}: {size} bytes exceeds "
+                        f"the {MAX_SCAN_BYTES}-byte limit",
+                        change.path,
+                    )
+                )
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
