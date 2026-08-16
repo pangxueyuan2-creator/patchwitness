@@ -29,6 +29,27 @@ def test_initialize_project_uses_detected_checks(tmp_path: Path) -> None:
     ]
 
 
+def test_rejects_empty_path_patterns(tmp_path: Path) -> None:
+    target = tmp_path / ".patchwitness.toml"
+    target.write_text(
+        'id="x"\n[policy]\nallowed_paths=[""]\ndenied_paths=[]\nprotected_paths=[]\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="empty pattern"):
+        load_contract(target)
+
+
+def test_rejects_whitespace_only_path_patterns(tmp_path: Path) -> None:
+    target = tmp_path / ".patchwitness.toml"
+    target.write_text(
+        'id="x"\n[policy]\nallowed_paths=["src/**"]\ndenied_paths=[]\n'
+        'protected_paths=["   "]\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="empty pattern"):
+        load_contract(target)
+
+
 def test_rejects_duplicate_check_ids(tmp_path: Path) -> None:
     target = tmp_path / ".patchwitness.toml"
     target.write_text(
