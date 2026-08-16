@@ -1,7 +1,10 @@
+import os
 import subprocess
 from pathlib import Path
 
-from patchwitness.cleanroom import clean_room
+import pytest
+
+from patchwitness.cleanroom import CleanRoomError, clean_room
 from patchwitness.cli import main
 from patchwitness.evidence import load_evidence, verify_evidence
 
@@ -80,3 +83,32 @@ def test_clean_room_gate_handles_committed_head_diff_and_writes_verifiable_evide
     assert [change["path"] for change in pack.changes] == ["app.py"]
     assert pack.extensions["verification"]["clean_room"] is True
     assert not list(tmp_path.parent.glob("patchwitness-cleanroom-*"))
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows directory junction regression")
+def test_clean_room_rejects_untracked_junction_escape(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.email", "tests@patchwitness.dev")
+    git(root, "config", "user.name", "PatchWitness Tests")
+    (root / "tracked.txt").write_text("safe\n", encoding="utf-8")
+    git(root, "add", "tracked.txt")
+    git(root, "commit", "-m", "base")
+    (outside / "secret.txt").write_text("outside\n", encoding="utf-8")
+
+    junction = root / "linked-outside"
+    created = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(junction), str(outside)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if created.returncode != 0:
+        pytest.skip(f"cannot create test junction: {created.stderr or created.stdout}")
+
+    with pytest.raises(CleanRoomError, match="resolves outside repository"):
+        with clean_room(root, "HEAD"):
+            pass
