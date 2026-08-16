@@ -44,6 +44,8 @@ def _git_root(cwd: object) -> Path | None:
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
         root = Path(result.stdout.strip()).resolve(strict=True)
@@ -114,6 +116,8 @@ def _capture(root: Path, event: dict[str, Any], command: list[str]) -> None:
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
     except subprocess.TimeoutExpired:
@@ -158,7 +162,3 @@ def main() -> int:
 
     _capture(root, event, command)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
