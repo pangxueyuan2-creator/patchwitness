@@ -47,3 +47,11 @@ The contract requires tests but does not define a check.
 
 A high-confidence secret shape was found in a changed text file. PatchWitness records only the
 secret type, path, and line; the value is never copied into evidence.
+
+## PW032
+
+In non-clean-room mode, a changed file was modified after its content was hashed but before
+evidence capture finished (for example by a verification check running in the live working tree).
+The recorded after-hash describes the state that was verified, not the current file. This is a
+warning: the gate still passes, but the drift is visible in the evidence pack. Use `--clean-room`
+to eliminate the window.

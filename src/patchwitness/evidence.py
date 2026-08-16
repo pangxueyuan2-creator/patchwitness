@@ -18,7 +18,7 @@ from patchwitness._version import __version__
 from patchwitness.checks import run_checks
 from patchwitness.cleanroom import clean_room
 from patchwitness.impact import analyze_impact
-from patchwitness.models import Contract, EvidencePack, GateStatus, Severity
+from patchwitness.models import Contract, EvidencePack, Finding, GateStatus, Severity
 from patchwitness.plugins import AnalyzerContext, run_analyzers
 from patchwitness.policy import evaluate_policy
 from patchwitness.security import scan_changed_files
@@ -64,6 +64,17 @@ def capture_evidence(
     findings = evaluate_policy(contract, changes, check_results) + scan_changed_files(
         repository, changes
     )
+    if execute_checks and not clean_room_checks:
+        for drifted in git.detect_content_drift(repository, base_revision, changes):
+            findings += (
+                Finding(
+                    "PW032",
+                    Severity.WARNING,
+                    "file content changed while checks were running; "
+                    "recorded evidence may not match the working tree",
+                    drifted,
+                ),
+            )
     impact = analyze_impact(repository, changes)
     analyzer_extensions = run_analyzers(
         AnalyzerContext(repository, base_revision, contract, changes)

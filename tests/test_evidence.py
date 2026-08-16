@@ -1,11 +1,12 @@
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from patchwitness import __version__
 from patchwitness.evidence import EvidenceError, capture_evidence, verify_evidence
-from patchwitness.models import Contract, GateStatus
+from patchwitness.models import CheckSpec, Contract, GateStatus
 
 
 def git(root: Path, *args: str) -> None:
@@ -192,6 +193,46 @@ def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> No
     pack = capture_evidence(tmp_path, contract, execute_checks=False)
     assert pack.status == GateStatus.FAIL
     assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
+
+
+def test_content_modified_by_checks_emits_drift_warning(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    (root / "app.py").write_text("print('after')\n", encoding="utf-8")
+    mutator = tmp_path.parent / "pw-mutator.py"
+    mutator.write_text(
+        "from pathlib import Path\n"
+        "path = Path('app.py')\n"
+        "path.write_text(path.read_text(encoding='utf-8') + '# drift\\n', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    contract = Contract(
+        require_tests=False,
+        checks=(CheckSpec(id="mutator", command=f'"{sys.executable}" "{mutator}"'),),
+    )
+
+    pack = capture_evidence(root, contract, execute_checks=True, clean_room_checks=False)
+
+    drifted = [finding for finding in pack.findings if finding["rule_id"] == "PW032"]
+    assert len(drifted) == 1
+    assert drifted[0]["path"] == "app.py"
+    assert pack.summary["warnings"] == 1
+    assert pack.status == GateStatus.PASS
+
+
+def test_stable_worktree_during_checks_emits_no_drift_warning(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    (root / "app.py").write_text("print('after')\n", encoding="utf-8")
+    noop = tmp_path.parent / "pw-noop.py"
+    noop.write_text("print('ok')\n", encoding="utf-8")
+    contract = Contract(
+        require_tests=False,
+        checks=(CheckSpec(id="noop", command=f'"{sys.executable}" "{noop}"'),),
+    )
+
+    pack = capture_evidence(root, contract, execute_checks=True, clean_room_checks=False)
+
+    assert not any(finding["rule_id"] == "PW032" for finding in pack.findings)
+    assert pack.summary["warnings"] == 0
 
 
 def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:

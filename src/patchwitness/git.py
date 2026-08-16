@@ -160,6 +160,46 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     return tuple(changes)
 
 
+def detect_content_drift(
+    root: Path, base_revision: str, changes: tuple[FileChange, ...]
+) -> tuple[str, ...]:
+    """Re-hash recorded after-content and report paths whose content moved.
+
+    Between change collection and evidence capture, verification checks may
+    run inside the live working tree. If a file is modified during that
+    window, the recorded after-hash no longer describes what a commit would
+    contain. Index-only paths re-read the index blob; every other path
+    re-reads the working-tree file.
+    """
+
+    cached_status_result = _run(
+        root, "diff", "--cached", "--name-status", "-z", "--no-ext-diff", base_revision, "--"
+    )
+    status_result = _run(root, "diff", "--name-status", "-z", "--no-ext-diff", base_revision, "--")
+    cached_paths = {
+        dest for dest, _status, _previous in _parse_name_status_z(cached_status_result.stdout)
+    }
+    worktree_paths = {
+        dest for dest, _status, _previous in _parse_name_status_z(status_result.stdout)
+    }
+    index_only = cached_paths - worktree_paths
+    live_paths = [
+        change.path
+        for change in changes
+        if change.after_sha256 is not None and change.path not in index_only
+    ]
+    staged_paths = [
+        change.path
+        for change in changes
+        if change.after_sha256 is not None and change.path in index_only
+    ]
+    current = _parallel_file_sha256(root, live_paths)
+    current.update(_batch_git_blob_sha256(root, "", staged_paths))
+    recorded = {change.path: change.after_sha256 for change in changes}
+    drifted = [path for path in (*live_paths, *staged_paths) if current.get(path) != recorded[path]]
+    return tuple(sorted(drifted))
+
+
 def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
     """Parse `git diff --name-status -z`. Rename/copy is STATUS\\0old\\0new\\0."""
 
