@@ -101,7 +101,7 @@ def test_submodule_pointer_change_at_protected_path_is_blocked(tmp_path: Path) -
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"submodule\"\n[policy]\n"
+        'version = 1\nid = "submodule"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -144,7 +144,7 @@ def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) 
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"staged\"\n[policy]\n"
+        'version = 1\nid = "staged"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -177,7 +177,7 @@ def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> No
         require_tests=False,
     )
     (tmp_path / ".patchwitness.toml").write_text(
-        "version = 1\nid = \"filemode\"\n[policy]\n"
+        'version = 1\nid = "filemode"\n[policy]\n'
         'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
         "require_tests = false\n",
         encoding="utf-8",
@@ -210,3 +210,79 @@ def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: 
     assert [item["path"] for item in pack.changes] == ["outside-link.txt"]
     assert pack.changes[0]["after_sha256"] is None
     assert not any(finding["rule_id"] == "PW030" for finding in pack.findings)
+
+
+def _blob_sha256(root: Path, spec: str) -> str:
+    import hashlib
+
+    completed = subprocess.run(
+        ["git", "-C", str(root), "cat-file", "-p", spec],
+        check=True,
+        capture_output=True,
+    )
+    return hashlib.sha256(completed.stdout).hexdigest()
+
+
+def test_staged_content_hash_wins_over_divergent_worktree(tmp_path: Path) -> None:
+    """A commit records the index blob; the evidence after-hash must match it,
+    not the divergent working-tree bytes."""
+
+    root = repository(tmp_path)
+    staged = "print('staged')\n"
+    worktree = "print('worktree')\n"
+    (root / "app.py").write_text(staged, encoding="utf-8")
+    git(root, "add", "app.py")
+    (root / "app.py").write_text(worktree, encoding="utf-8")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    change = next(item for item in pack.changes if item["path"] == "app.py")
+    assert change["after_sha256"] == _blob_sha256(root, ":app.py")
+    assert change["after_sha256"] != _blob_sha256(root, "HEAD:app.py")
+
+
+def test_staged_delete_with_untracked_replacement_stays_a_deletion(tmp_path: Path) -> None:
+    """Staged deletion + untracked same-content replacement must report D,
+    not a misleading addition."""
+
+    root = repository(tmp_path)
+    original = (root / "app.py").read_text(encoding="utf-8")
+    git(root, "rm", "--cached", "-q", "app.py")
+    (root / "app.py").write_text(original, encoding="utf-8")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    change = next(item for item in pack.changes if item["path"] == "app.py")
+    assert change["status"] == "D"
+
+
+def test_skip_worktree_edit_of_protected_file_is_detected(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    workflow = root / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("on: push\n", encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "workflow")
+    git(root, "update-index", "--skip-worktree", ".github/workflows/ci.yml")
+    workflow.write_text("on: push\njobs:\n  evil:\n    runs-on: ubuntu-latest\n", encoding="utf-8")
+
+    contract = Contract(
+        allowed_paths=("**",),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    pack = capture_evidence(root, contract, execute_checks=False)
+
+    assert pack.status == GateStatus.FAIL
+    assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
+
+
+def test_assume_unchanged_edit_is_detected(tmp_path: Path) -> None:
+    root = repository(tmp_path)
+    git(root, "update-index", "--assume-unchanged", "app.py")
+    (root / "app.py").write_text("print('hidden')\n", encoding="utf-8")
+
+    pack = capture_evidence(root, Contract(require_tests=False), execute_checks=False)
+
+    change = next(item for item in pack.changes if item["path"] == "app.py")
+    assert change["status"] == "M"
