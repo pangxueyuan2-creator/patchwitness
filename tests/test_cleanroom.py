@@ -109,6 +109,8 @@ def test_clean_room_rejects_untracked_junction_escape(tmp_path: Path) -> None:
     if created.returncode != 0:
         pytest.skip(f"cannot create test junction: {created.stderr or created.stdout}")
 
-    with pytest.raises(CleanRoomError, match="resolves outside repository"):
-        with clean_room(root, "HEAD"):
-            pass
+    with (
+        pytest.raises(CleanRoomError, match="resolves outside repository"),
+        clean_room(root, "HEAD"),
+    ):
+        pass
