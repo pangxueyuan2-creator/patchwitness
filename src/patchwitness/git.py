@@ -90,7 +90,6 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     # The index participates in what will be committed even when the working
     # tree looks clean. The working tree takes precedence for shared paths.
     statuses = {**cached_statuses, **worktree_statuses}
-    index_only_paths = set(cached_statuses) - set(worktree_statuses)
 
     cached_numstat_result = _run(
         root,
@@ -116,6 +115,11 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         path = raw_path.replace("\\", "/")
         if path.startswith(".patchwitness/evidence/"):
             continue
+        if path in cached_statuses or path in worktree_statuses:
+            # A staged deletion with an untracked replacement must stay a
+            # deletion: the commit records the index state, not the
+            # replacement file that would remain untracked.
+            continue
         statuses[path] = ("A", None)
         full_path = root / path
         binary = _is_binary(full_path)
@@ -134,11 +138,38 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         if not status.startswith("D")
     ]
     after_hashes = _parallel_file_sha256(root, worktree_after_paths)
+    # For every staged path the commit records the INDEX blob, even when the
+    # working tree holds different bytes for the same path. Prefer ":path" so
+    # the evidence hash matches what a commit would actually record.
     index_after_paths = [
-        path for path in index_only_paths if not statuses[path][0].startswith("D")
+        path for path in cached_statuses if not cached_statuses[path][0].startswith("D")
     ]
-    # ":path" is the index blob; its content is what a commit would record.
     after_hashes.update(_batch_git_blob_sha256(root, "", index_after_paths))
+    # Files marked assume-unchanged or skip-worktree are invisible to both
+    # diffs above. Their content can still differ from the base; surface such
+    # edits instead of letting the gate pass over them silently.
+    flagged_result = _run(root, "ls-files", "-v", "-z", check=False)
+    for entry in flagged_result.stdout.split("\0"):
+        if not entry or entry[0] == "H":
+            # "H" is the normal cached state; lowercase tags mark
+            # assume-unchanged, "S" marks skip-worktree, and the remaining
+            # uppercase tags mark unmerged index states.
+            continue
+        path = entry[1:].strip().replace("\\", "/")
+        if not path or path in statuses:
+            continue
+        current_hash = _file_sha256(root, path)
+        if current_hash is None:
+            continue
+        base_hash = _batch_git_blob_sha256(root, base_revision, [path]).get(path)
+        if current_hash == base_hash:
+            continue
+        full_path = root / path
+        binary = _is_binary(full_path)
+        statuses[path] = ("M", None)
+        stats[path] = (0 if binary else _count_lines(full_path), 0, binary)
+        before_hashes[path] = base_hash
+        after_hashes[path] = current_hash
     changes: list[FileChange] = []
     for path in sorted(statuses):
         additions, deletions, binary = stats.get(path, (0, 0, False))
