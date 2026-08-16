@@ -134,6 +134,39 @@ def test_submodule_pointer_change_at_protected_path_is_blocked(tmp_path: Path) -
     assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
 
 
+def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) -> None:
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
+    git(tmp_path, "config", "user.name", "PatchWitness Tests")
+    contract = Contract(
+        allowed_paths=("**",),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    (tmp_path / ".patchwitness.toml").write_text(
+        "version = 1\nid = \"staged\"\n[policy]\n"
+        'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
+        "require_tests = false\n",
+        encoding="utf-8",
+    )
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("on: push\n", encoding="utf-8")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "base")
+    # Stage a protected edit, then restore the working tree to base content.
+    staged_content = "jobs:\n  evil:\n    runs-on: ubuntu-latest\n"
+    workflow.write_text(staged_content, encoding="utf-8")
+    git(tmp_path, "add", ".github/workflows/ci.yml")
+    workflow.write_text("on: push\n", encoding="utf-8")
+
+    pack = capture_evidence(tmp_path, contract, execute_checks=False)
+    assert pack.status == GateStatus.FAIL
+    assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
+    assert [change["path"] for change in pack.changes] == [".github/workflows/ci.yml"]
+    assert pack.changes[0]["after_sha256"] is not None
+
+
 def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> None:
     git(tmp_path, "init", "-b", "main")
     git(tmp_path, "config", "user.email", "tests@patchwitness.dev")

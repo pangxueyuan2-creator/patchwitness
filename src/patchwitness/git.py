@@ -60,6 +60,17 @@ def load_file_at_revision(root: Path, revision: str, relative_path: str) -> byte
 
 
 def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
+    cached_status_result = _run(
+        root,
+        "diff",
+        "--cached",
+        "--name-status",
+        "-z",
+        "--find-renames",
+        "--no-ext-diff",
+        base_revision,
+        "--",
+    )
     status_result = _run(
         root,
         "diff",
@@ -70,14 +81,33 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         base_revision,
         "--",
     )
-    statuses: dict[str, tuple[str, str | None]] = {}
+    cached_statuses: dict[str, tuple[str, str | None]] = {}
+    for dest, status, previous in _parse_name_status_z(cached_status_result.stdout):
+        cached_statuses[dest] = (status, previous)
+    worktree_statuses: dict[str, tuple[str, str | None]] = {}
     for dest, status, previous in _parse_name_status_z(status_result.stdout):
-        statuses[dest] = (status, previous)
+        worktree_statuses[dest] = (status, previous)
+    # The index participates in what will be committed even when the working
+    # tree looks clean. The working tree takes precedence for shared paths.
+    statuses = {**cached_statuses, **worktree_statuses}
+    index_only_paths = set(cached_statuses) - set(worktree_statuses)
 
+    cached_numstat_result = _run(
+        root,
+        "diff",
+        "--cached",
+        "--numstat",
+        "-z",
+        "--find-renames",
+        "--no-ext-diff",
+        base_revision,
+        "--",
+    )
     numstat_result = _run(
         root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff", base_revision, "--"
     )
-    stats = _parse_numstat_z(numstat_result.stdout)
+    stats = _parse_numstat_z(cached_numstat_result.stdout)
+    stats.update(_parse_numstat_z(numstat_result.stdout))
 
     untracked_result = _run(root, "ls-files", "--others", "--exclude-standard", "-z")
     for raw_path in untracked_result.stdout.split("\0"):
@@ -98,10 +128,17 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         if not status.startswith("A")
     ]
     before_hashes = _batch_git_blob_sha256(root, base_revision, before_paths)
-    after_paths = [
-        path for path, (status, _previous_path) in statuses.items() if not status.startswith("D")
+    worktree_after_paths = [
+        path
+        for path, (status, _previous_path) in worktree_statuses.items()
+        if not status.startswith("D")
     ]
-    after_hashes = _parallel_file_sha256(root, after_paths)
+    after_hashes = _parallel_file_sha256(root, worktree_after_paths)
+    index_after_paths = [
+        path for path in index_only_paths if not statuses[path][0].startswith("D")
+    ]
+    # ":path" is the index blob; its content is what a commit would record.
+    after_hashes.update(_batch_git_blob_sha256(root, "", index_after_paths))
     changes: list[FileChange] = []
     for path in sorted(statuses):
         additions, deletions, binary = stats.get(path, (0, 0, False))
