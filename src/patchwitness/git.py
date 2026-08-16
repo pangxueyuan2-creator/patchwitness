@@ -108,6 +108,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     stats = _parse_numstat_z(cached_numstat_result.stdout)
     stats.update(_parse_numstat_z(numstat_result.stdout))
 
+    untracked_after_paths: list[str] = []
     untracked_result = _run(root, "ls-files", "--others", "--exclude-standard", "-z")
     for raw_path in untracked_result.stdout.split("\0"):
         if not raw_path:
@@ -121,6 +122,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
             # replacement file that would remain untracked.
             continue
         statuses[path] = ("A", None)
+        untracked_after_paths.append(path)
         full_path = root / path
         binary = _is_binary(full_path)
         lines = 0 if binary else _count_lines(full_path)
@@ -138,6 +140,10 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         if not status.startswith("D")
     ]
     after_hashes = _parallel_file_sha256(root, worktree_after_paths)
+    # Untracked additions are part of the reported change set too. Hash them
+    # so downstream content-sensitive checks (notably secret scanning) inspect
+    # brand-new files instead of skipping them because after_sha256 is absent.
+    after_hashes.update(_parallel_file_sha256(root, untracked_after_paths))
     # For every staged path the commit records the INDEX blob, even when the
     # working tree holds different bytes for the same path. Prefer ":path" so
     # the evidence hash matches what a commit would actually record.
