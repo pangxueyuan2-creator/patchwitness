@@ -167,6 +167,47 @@ def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) 
     assert pack.changes[0]["after_sha256"] is not None
 
 
+def test_delete_add_mimicking_rename_of_protected_file_is_blocked(tmp_path: Path) -> None:
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
+    git(tmp_path, "config", "user.name", "PatchWitness Tests")
+    contract = Contract(
+        allowed_paths=("**",),
+        protected_paths=(".github/workflows/**",),
+        require_tests=False,
+    )
+    (tmp_path / ".patchwitness.toml").write_text(
+        'version = 1\nid = "deladd"\n[policy]\n'
+        'allowed_paths = ["**"]\nprotected_paths = [".github/workflows/**"]\n'
+        "require_tests = false\n",
+        encoding="utf-8",
+    )
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("on: push\n", encoding="utf-8")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "base")
+    # Mimic a rename with delete + add of identical content at a new path.
+    git(tmp_path, "rm", ".github/workflows/ci.yml")
+    replacement = tmp_path / ".github" / "workflows" / "replaced.yml"
+    replacement.parent.mkdir(parents=True, exist_ok=True)
+    replacement.write_text("on: push\n", encoding="utf-8")
+    git(tmp_path, "add", ".github/workflows/replaced.yml")
+
+    pack = capture_evidence(tmp_path, contract, execute_checks=False)
+
+    assert pack.status == GateStatus.FAIL
+    # The deleted protected path must not disappear behind rename detection.
+    assert any(
+        finding["rule_id"] == "PW003" and finding["path"] == ".github/workflows/ci.yml"
+        for finding in pack.findings
+    )
+    rename = pack.changes[0]
+    assert rename["path"] == ".github/workflows/replaced.yml"
+    assert rename["previous_path"] == ".github/workflows/ci.yml"
+    assert rename["status"].startswith("R")
+
+
 def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> None:
     git(tmp_path, "init", "-b", "main")
     git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
