@@ -162,3 +162,7 @@ def main() -> int:
 
     _capture(root, event, command)
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
