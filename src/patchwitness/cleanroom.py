@@ -79,16 +79,23 @@ def _copy_untracked(root: Path, worktree: Path) -> None:
     result = _git(root, "ls-files", "--others", "--exclude-standard", "-z")
     if result.returncode != 0:
         raise CleanRoomError(f"cannot enumerate untracked files: {result.stderr.strip()}")
+    repository_root = root.resolve(strict=True)
     for raw in result.stdout.split("\0"):
         if not raw or raw.startswith(".patchwitness/evidence/"):
             continue
         source = root / raw
         target = worktree / raw
-        target.parent.mkdir(parents=True, exist_ok=True)
         if source.is_symlink():
             raise CleanRoomError(f"untracked symlinks are not accepted in clean room: {raw}")
-        if source.is_file():
-            shutil.copy2(source, target)
+        try:
+            resolved_source = source.resolve(strict=True)
+            resolved_source.relative_to(repository_root)
+        except (OSError, ValueError):
+            detail = "untracked path resolves outside repository and is not accepted in clean room"
+            raise CleanRoomError(f"{detail}: {raw}") from None
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if resolved_source.is_file():
+            shutil.copy2(resolved_source, target)
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
