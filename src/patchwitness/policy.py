@@ -127,12 +127,15 @@ def _matches(path: str, pattern: str) -> bool:
 
     Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
     patterns ending with / or /** match the directory itself and everything
-    under it. Plain * / ** still match everything.
+    under it. Plain * / ** still match everything. Empty patterns match
+    nothing; malformed configuration must never widen a security scope.
     """
     normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
         normalized = normalized[2:]
-    if not normalized or normalized in {"*", "**", "**/*"}:
+    if not normalized:
+        return False
+    if normalized in {"*", "**", "**/*"}:
         return True
 
     # directory form: "src/" or "src/**"
