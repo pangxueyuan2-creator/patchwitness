@@ -141,10 +141,7 @@ def _resolve_trusted_command(command: str, root: Path) -> str:
         resolved = sys.executable
     else:
         candidate = Path(first)
-        if candidate.is_absolute():
-            resolved = str(candidate)
-        else:
-            resolved = shutil.which(first)
+        resolved = str(candidate) if candidate.is_absolute() else shutil.which(first)
         if resolved is None:
             raise ValueError(f"check executable is not available on PATH: {first}")
     try:
