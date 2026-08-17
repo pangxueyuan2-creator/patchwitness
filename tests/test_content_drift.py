@@ -63,7 +63,29 @@ def test_check_mutating_recorded_file_fails_closed(tmp_path: Path) -> None:
     assert pack.summary["errors"] >= 1
 
 
-def test_check_creating_new_change_fails_closed(tmp_path: Path) -> None:
+def test_check_deleting_recorded_file_fails_closed(tmp_path: Path) -> None:
+    root = repository(tmp_path / "repo")
+    (root / "app.py").write_text("print('candidate')\n", encoding="utf-8")
+    script = tmp_path / "delete.py"
+    script.write_text("from pathlib import Path\nPath('app.py').unlink()\n", encoding="utf-8")
+
+    pack = capture_evidence(
+        root,
+        mutating_contract(script),
+        execute_checks=True,
+        clean_room_checks=False,
+    )
+
+    drift_paths = {
+        finding["path"] for finding in pack.findings if finding["rule_id"] == "PW032"
+    }
+    assert "app.py" in drift_paths
+    assert pack.status == GateStatus.FAIL
+
+
+def test_check_created_untracked_artifact_does_not_invalidate_recorded_change(
+    tmp_path: Path,
+) -> None:
     root = repository(tmp_path / "repo")
     (root / "app.py").write_text("print('candidate')\n", encoding="utf-8")
     script = tmp_path / "create.py"
@@ -79,11 +101,9 @@ def test_check_creating_new_change_fails_closed(tmp_path: Path) -> None:
         clean_room_checks=False,
     )
 
-    drift_paths = {
-        finding["path"] for finding in pack.findings if finding["rule_id"] == "PW032"
-    }
-    assert "generated.txt" in drift_paths
-    assert pack.status == GateStatus.FAIL
+    assert not any(finding["rule_id"] == "PW032" for finding in pack.findings)
+    assert pack.status == GateStatus.PASS
+    assert pack.repository["dirty"] is True
 
 
 def test_stable_live_checks_emit_no_pw032(tmp_path: Path) -> None:
