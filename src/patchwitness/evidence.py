@@ -69,9 +69,8 @@ def capture_evidence(
             findings += (
                 Finding(
                     "PW032",
-                    Severity.WARNING,
-                    "file content changed while checks were running; "
-                    "recorded evidence may not match the working tree",
+                    Severity.ERROR,
+                    "file content changed while checks were running; refusing stale evidence",
                     drifted,
                 ),
             )
