@@ -155,7 +155,6 @@ def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) 
     workflow.write_text("on: push\n", encoding="utf-8")
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-m", "base")
-    # Stage a protected edit, then restore the working tree to base content.
     staged_content = "jobs:\n  evil:\n    runs-on: ubuntu-latest\n"
     workflow.write_text(staged_content, encoding="utf-8")
     git(tmp_path, "add", ".github/workflows/ci.yml")
@@ -195,7 +194,7 @@ def test_filemode_only_change_of_protected_file_is_blocked(tmp_path: Path) -> No
     assert any(finding["rule_id"] == "PW003" for finding in pack.findings)
 
 
-def test_content_modified_by_checks_emits_drift_warning(tmp_path: Path) -> None:
+def test_content_modified_by_checks_fails_closed(tmp_path: Path) -> None:
     root = repository(tmp_path)
     (root / "app.py").write_text("print('after')\n", encoding="utf-8")
     mutator = tmp_path.parent / "pw-mutator.py"
@@ -215,11 +214,12 @@ def test_content_modified_by_checks_emits_drift_warning(tmp_path: Path) -> None:
     drifted = [finding for finding in pack.findings if finding["rule_id"] == "PW032"]
     assert len(drifted) == 1
     assert drifted[0]["path"] == "app.py"
-    assert pack.summary["warnings"] == 1
-    assert pack.status == GateStatus.PASS
+    assert drifted[0]["severity"] == "error"
+    assert pack.summary["errors"] == 1
+    assert pack.status == GateStatus.FAIL
 
 
-def test_stable_worktree_during_checks_emits_no_drift_warning(tmp_path: Path) -> None:
+def test_stable_worktree_during_checks_emits_no_drift_finding(tmp_path: Path) -> None:
     root = repository(tmp_path)
     (root / "app.py").write_text("print('after')\n", encoding="utf-8")
     noop = tmp_path.parent / "pw-noop.py"
@@ -232,7 +232,7 @@ def test_stable_worktree_during_checks_emits_no_drift_warning(tmp_path: Path) ->
     pack = capture_evidence(root, contract, execute_checks=True, clean_room_checks=False)
 
     assert not any(finding["rule_id"] == "PW032" for finding in pack.findings)
-    assert pack.summary["warnings"] == 0
+    assert pack.summary["errors"] == 0
 
 
 def test_capture_does_not_follow_untracked_symlink_outside_repository(tmp_path: Path) -> None:
