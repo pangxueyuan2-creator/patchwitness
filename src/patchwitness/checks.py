@@ -17,6 +17,20 @@ from patchwitness.models import CheckResult, CheckSpec
 from patchwitness.redaction import excerpt, redact
 
 _LEADING_TOOL = re.compile(r'^\s*(?:"([^"]+)"|\'([^\']+)\'|([^\s]+))(.*)\Z', re.S)
+_SHELL_WRAPPERS = {
+    "bash",
+    "cmd",
+    "cmd.exe",
+    "dash",
+    "fish",
+    "ksh",
+    "powershell",
+    "powershell.exe",
+    "pwsh",
+    "pwsh.exe",
+    "sh",
+    "zsh",
+}
 
 
 def run_checks(
@@ -137,6 +151,8 @@ def _resolve_trusted_command(command: str, root: Path) -> str:
         raise ValueError("check command has no safely resolvable executable")
     first = next(value for value in match.groups()[:3] if value is not None)
     remainder = match.group(4)
+    if Path(first).name.casefold() in _SHELL_WRAPPERS:
+        raise ValueError("shell interpreter wrappers are not allowed in clean-room checks")
     if first in {"python", "python3"}:
         resolved = sys.executable
     else:
@@ -158,7 +174,7 @@ def _resolve_trusted_command(command: str, root: Path) -> str:
 
 
 def _contains_shell_control(command: str) -> bool:
-    """Return True for shell composition/substitution outside single quotes."""
+    """Return True for shell composition/substitution in a check command."""
 
     single = False
     double = False
@@ -170,7 +186,7 @@ def _contains_shell_control(command: str) -> bool:
             escaped = False
             index += 1
             continue
-        if char == "\\" and not single:
+        if char == "\\" and not single and os.name != "nt":
             escaped = True
             index += 1
             continue
@@ -184,6 +200,8 @@ def _contains_shell_control(command: str) -> bool:
             continue
         if not single:
             if char in "\r\n`" or (not double and char in "&|<>;"):
+                return True
+            if os.name == "nt" and not double and char == "^":
                 return True
             if char == "$" and index + 1 < len(command) and command[index + 1] == "(":
                 return True
