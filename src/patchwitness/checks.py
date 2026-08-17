@@ -153,9 +153,8 @@ def _resolve_trusted_command(command: str, root: Path) -> str:
     remainder = match.group(4)
     if Path(first).name.casefold() in _SHELL_WRAPPERS:
         raise ValueError("shell interpreter wrappers are not allowed in clean-room checks")
-    if first in {"python", "python3"}:
-        resolved = sys.executable
-    else:
+    resolved: str | None = sys.executable if first in {"python", "python3"} else None
+    if resolved is None:
         candidate = Path(first)
         resolved = str(candidate) if candidate.is_absolute() else shutil.which(first)
         if resolved is None:
