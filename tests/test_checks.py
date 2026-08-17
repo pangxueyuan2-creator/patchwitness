@@ -100,6 +100,18 @@ def test_untrusted_command_refuses_compound_shell_syntax(tmp_path: Path) -> None
             _resolve_trusted_command(command, tmp_path)
 
 
+def test_untrusted_command_refuses_shell_wrappers(tmp_path: Path) -> None:
+    for command in (
+        "sh -c pytest",
+        "bash -c pytest",
+        "cmd /c pytest",
+        "powershell -Command pytest",
+        "pwsh -Command pytest",
+    ):
+        with pytest.raises(ValueError, match="shell interpreter"):
+            _resolve_trusted_command(command, tmp_path)
+
+
 def test_untrusted_run_fails_closed_instead_of_raising(tmp_path: Path) -> None:
     result = run_checks(
         tmp_path,
