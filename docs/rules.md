@@ -47,3 +47,10 @@ The contract requires tests but does not define a check.
 
 A high-confidence secret shape was found in a changed text file. PatchWitness records only the
 secret type, path, and line; the value is never copied into evidence.
+
+## PW032
+
+In non-clean-room mode, repository change state moved after it was captured but before verification
+finished. This can happen when a check modifies, stages, unstages, creates, deletes, or renames files
+in the live working tree. PatchWitness refuses to issue stale evidence: PW032 is an error and the gate
+fails. Use `--clean-room` when checks should have no opportunity to mutate the captured repository.
