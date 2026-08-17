@@ -51,6 +51,7 @@ def capture_evidence(
                 contract.checks,
                 parallel=parallel_checks,
                 max_workers=max_workers,
+                untrusted=True,
             )
     elif execute_checks:
         check_results = run_checks(
