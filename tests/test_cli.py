@@ -121,6 +121,59 @@ def test_smart_scan_uses_latest_commit_when_worktree_is_clean(
     assert [change["path"] for change in pack.changes] == ["app.py"]
 
 
+def test_shallow_clone_policy_ref_missing_object_fails_explicitly(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
+    git(tmp_path, "config", "user.name", "PatchWitness Tests")
+    (tmp_path / ".patchwitness.toml").write_text(
+        'version = 1\nid = "shallow"\n[policy]\n'
+        'allowed_paths = ["**"]\nprotected_paths = []\nrequire_tests = false\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "a.txt").write_text("1\n", encoding="utf-8")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "base")
+    base = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (tmp_path / "b.txt").write_text("2\n", encoding="utf-8")
+    git(tmp_path, "add", "b.txt")
+    git(tmp_path, "commit", "-m", "second")
+
+    shallow = tmp_path.parent / (tmp_path.name + "-shallow")
+    subprocess.run(
+        ["git", "clone", "--depth=1", "--no-local", str(tmp_path), str(shallow)],
+        check=True,
+        capture_output=True,
+    )
+    missing = subprocess.run(
+        ["git", "-C", str(shallow), "cat-file", "-e", base + "^{commit}"],
+        capture_output=True,
+    )
+    assert missing.returncode != 0, "fixture: base object must be absent in the shallow clone"
+    monkeypatch.chdir(shallow)  # type: ignore[attr-defined]
+
+    result = main(
+        [
+            "capture",
+            "--policy-ref",
+            base,
+            "--contract",
+            ".patchwitness.toml",
+            "--output",
+            "evidence.json",
+        ]
+    )
+
+    assert result == 2
+    assert not (shallow / "evidence.json").exists()
+
+
 def test_smart_scan_on_single_commit_repo_falls_back_to_head(
     tmp_path: Path, monkeypatch: object
 ) -> None:
