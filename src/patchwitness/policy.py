@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 from collections.abc import Iterable
+from functools import lru_cache
 from pathlib import PurePosixPath
 
 from patchwitness.models import CheckResult, Contract, FileChange, Finding, Severity
@@ -122,14 +123,38 @@ def _matches_any(path: str, patterns: Iterable[str]) -> bool:
     return any(_matches(normalized, pattern) for pattern in patterns)
 
 
+def _glob_match(path: str, pattern: str) -> bool:
+    """Match POSIX path segments, with ** spanning zero or more segments."""
+    path_parts = tuple(path.split("/"))
+    pattern_parts = tuple(pattern.split("/"))
+
+    @lru_cache(maxsize=None)
+    def match(path_index: int, pattern_index: int) -> bool:
+        if pattern_index == len(pattern_parts):
+            return path_index == len(path_parts)
+        token = pattern_parts[pattern_index]
+        if token == "**":
+            return match(path_index, pattern_index + 1) or (
+                path_index < len(path_parts) and match(path_index + 1, pattern_index)
+            )
+        if path_index >= len(path_parts):
+            return False
+        return fnmatch.fnmatchcase(path_parts[path_index], token) and match(
+            path_index + 1, pattern_index + 1
+        )
+
+    return match(0, 0)
+
+
 def _matches(path: str, pattern: str) -> bool:
     """Match a repository-relative path against a policy pattern.
 
     Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
     patterns ending with / or /** match the directory itself and everything
     under it. A single-star glob never crosses a path separator; ** is the
-    recursive form. Plain * / ** still match everything. Empty patterns match
-    nothing; malformed configuration must never widen a security scope.
+    recursive form and may span zero or more complete path segments. Plain
+    * / ** still match everything. Empty patterns match nothing; malformed
+    configuration must never widen a security scope.
     """
     normalized = pattern.replace("\\", "/").strip()
     while normalized.startswith("./"):
@@ -155,20 +180,11 @@ def _matches(path: str, pattern: str) -> bool:
     if "*" not in normalized and "?" not in normalized and "[" not in normalized:
         return path == normalized or path.startswith(normalized + "/")
 
-    # Python's fnmatch treats '/' like any other character, so a pattern such
-    # as "src/*.py" would otherwise match "src/nested/app.py". Preserve
-    # recursive semantics only when the policy explicitly asks for **.
-    if "**" not in normalized:
-        path_parts = path.split("/")
-        pattern_parts = normalized.split("/")
-        if len(path_parts) != len(pattern_parts):
-            return False
-        return all(
-            fnmatch.fnmatchcase(path_part, pattern_part)
-            for path_part, pattern_part in zip(path_parts, pattern_parts, strict=True)
-        )
-
-    return fnmatch.fnmatchcase(path, normalized)
+    # Python's fnmatch treats '/' like any other character. Match path
+    # segments explicitly so ordinary wildcards stay within one segment while
+    # ** can span zero or more segments (for example src/**/*.py also matches
+    # src/app.py).
+    return _glob_match(path, normalized)
 
 
 def _deduplicate(findings: Iterable[Finding]) -> list[Finding]:
