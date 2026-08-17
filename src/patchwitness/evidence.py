@@ -18,7 +18,7 @@ from patchwitness._version import __version__
 from patchwitness.checks import run_checks
 from patchwitness.cleanroom import clean_room
 from patchwitness.impact import analyze_impact
-from patchwitness.models import Contract, EvidencePack, GateStatus, Severity
+from patchwitness.models import Contract, EvidencePack, FileChange, Finding, GateStatus, Severity
 from patchwitness.plugins import AnalyzerContext, run_analyzers
 from patchwitness.policy import evaluate_policy
 from patchwitness.security import scan_changed_files
@@ -65,6 +65,17 @@ def capture_evidence(
     findings = evaluate_policy(contract, changes, check_results) + scan_changed_files(
         repository, changes
     )
+    if execute_checks and not clean_room_checks:
+        current_changes = git.collect_changes(repository, base_revision)
+        for drifted in _drifted_paths(changes, current_changes):
+            findings += (
+                Finding(
+                    "PW032",
+                    Severity.ERROR,
+                    "repository content changed while checks were running; refusing stale evidence",
+                    drifted,
+                ),
+            )
     impact = analyze_impact(repository, changes)
     analyzer_extensions = run_analyzers(
         AnalyzerContext(repository, base_revision, contract, changes)
@@ -120,6 +131,27 @@ def capture_evidence(
     }
     payload_sha256 = _digest(unsigned)
     return EvidencePack.from_dict({**unsigned, "payload_sha256": payload_sha256})
+
+
+def _drifted_paths(
+    recorded: tuple[FileChange, ...], current: tuple[FileChange, ...]
+) -> tuple[str, ...]:
+    """Return paths whose commit-relevant change state moved during verification."""
+
+    def fingerprint(change: FileChange) -> tuple[str, str | None, str | None, str | None]:
+        return (
+            change.status,
+            change.previous_path,
+            change.before_sha256,
+            change.after_sha256,
+        )
+
+    recorded_by_path = {change.path: fingerprint(change) for change in recorded}
+    current_by_path = {change.path: fingerprint(change) for change in current}
+    all_paths = recorded_by_path.keys() | current_by_path.keys()
+    return tuple(
+        sorted(path for path in all_paths if recorded_by_path.get(path) != current_by_path.get(path))
+    )
 
 
 def verify_evidence(pack: EvidencePack | dict[str, Any]) -> EvidencePack:
