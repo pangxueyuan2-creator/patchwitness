@@ -1,8 +1,15 @@
 import os
+import shutil
 import sys
 from pathlib import Path
 
-from patchwitness.checks import _prefer_project_virtualenv, run_checks
+import pytest
+
+from patchwitness.checks import (
+    _prefer_project_virtualenv,
+    _resolve_trusted_command,
+    run_checks,
+)
 from patchwitness.models import CheckSpec
 
 
@@ -53,3 +60,79 @@ def test_project_virtualenv_is_preferred_for_checks(tmp_path: Path) -> None:
 
     assert env["PATH"].split(os.pathsep)[0] == str(executable_dir)
     assert env["VIRTUAL_ENV"] == str(tmp_path / ".venv")
+
+
+def test_untrusted_command_resolves_python_to_verifier(tmp_path: Path) -> None:
+    resolved = _resolve_trusted_command("python -m pytest -q", tmp_path)
+    assert resolved == f'"{Path(sys.executable).resolve()}" -m pytest -q'
+
+
+def test_untrusted_command_resolves_path_tool_outside_worktree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda name: sys.executable if name == "pytest" else None)
+    resolved = _resolve_trusted_command("pytest -q", tmp_path)
+    assert resolved == f'"{Path(sys.executable).resolve()}" -q'
+
+
+def test_untrusted_command_refuses_tool_inside_worktree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    planted = tmp_path / "tools" / ("pytest.exe" if os.name == "nt" else "pytest")
+    planted.parent.mkdir()
+    shutil.copy(sys.executable, planted)
+    monkeypatch.setattr(shutil, "which", lambda name: str(planted) if name == "pytest" else None)
+
+    with pytest.raises(ValueError, match="untrusted worktree"):
+        _resolve_trusted_command("pytest -q", tmp_path)
+
+
+def test_untrusted_command_refuses_compound_shell_syntax(tmp_path: Path) -> None:
+    for command in (
+        "python -m pytest && python planted.py",
+        "python -m pytest | tee results.txt",
+        "python -m pytest > results.txt",
+        "python -m pytest; python planted.py",
+        "python -m pytest $(python planted.py)",
+        "python -m pytest `python planted.py`",
+    ):
+        with pytest.raises(ValueError, match="compound shell syntax"):
+            _resolve_trusted_command(command, tmp_path)
+
+
+def test_untrusted_command_refuses_shell_wrappers(tmp_path: Path) -> None:
+    for command in (
+        "sh -c pytest",
+        "bash -c pytest",
+        "cmd /c pytest",
+        "powershell -Command pytest",
+        "pwsh -Command pytest",
+    ):
+        with pytest.raises(ValueError, match="shell interpreter"):
+            _resolve_trusted_command(command, tmp_path)
+
+
+def test_untrusted_run_fails_closed_instead_of_raising(tmp_path: Path) -> None:
+    result = run_checks(
+        tmp_path,
+        [CheckSpec("compound", "python -V && python planted.py", timeout_seconds=5)],
+        untrusted=True,
+    )[0]
+    assert result.exit_code == 126
+    assert not result.passed
+    assert "refused to execute clean-room check" in result.output_excerpt
+
+
+def test_untrusted_run_does_not_prefer_repository_virtualenv(tmp_path: Path) -> None:
+    executable_dir = tmp_path / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+    executable_dir.mkdir(parents=True)
+    planted = executable_dir / ("python.exe" if os.name == "nt" else "python")
+    shutil.copy(sys.executable, planted)
+
+    result = run_checks(
+        tmp_path,
+        [CheckSpec("python", "python -c \"import sys; print(sys.executable)\"", timeout_seconds=5)],
+        untrusted=True,
+    )[0]
+    assert result.passed
+    assert str(tmp_path / ".venv") not in result.output_excerpt
