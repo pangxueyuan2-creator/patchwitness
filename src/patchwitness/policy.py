@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import fnmatch
 from collections.abc import Iterable
-from functools import lru_cache
+from functools import cache
 from pathlib import PurePosixPath
 
 from patchwitness.models import CheckResult, Contract, FileChange, Finding, Severity
@@ -128,7 +128,7 @@ def _glob_match(path: str, pattern: str) -> bool:
     path_parts = tuple(path.split("/"))
     pattern_parts = tuple(pattern.split("/"))
 
-    @lru_cache(maxsize=None)
+    @cache
     def match(path_index: int, pattern_index: int) -> bool:
         if pattern_index == len(pattern_parts):
             return path_index == len(path_parts)
