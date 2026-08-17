@@ -127,7 +127,8 @@ def _matches(path: str, pattern: str) -> bool:
 
     Patterns are treated as POSIX-style. Leading ./ is ignored. Directory
     patterns ending with / or /** match the directory itself and everything
-    under it. Plain * / ** still match everything. Empty patterns match
+    under it. A single-star glob never crosses a path separator; ** is the
+    recursive form. Plain * / ** still match everything. Empty patterns match
     nothing; malformed configuration must never widen a security scope.
     """
     normalized = pattern.replace("\\", "/").strip()
@@ -150,9 +151,22 @@ def _matches(path: str, pattern: str) -> bool:
             return True
         return path == prefix or path.startswith(prefix + "/")
 
-    # exact or simple glob
+    # exact path
     if "*" not in normalized and "?" not in normalized and "[" not in normalized:
         return path == normalized or path.startswith(normalized + "/")
+
+    # Python's fnmatch treats '/' like any other character, so a pattern such
+    # as "src/*.py" would otherwise match "src/nested/app.py". Preserve
+    # recursive semantics only when the policy explicitly asks for **.
+    if "**" not in normalized:
+        path_parts = path.split("/")
+        pattern_parts = normalized.split("/")
+        if len(path_parts) != len(pattern_parts):
+            return False
+        return all(
+            fnmatch.fnmatchcase(path_part, pattern_part)
+            for path_part, pattern_part in zip(path_parts, pattern_parts, strict=True)
+        )
 
     return fnmatch.fnmatchcase(path, normalized)
 
