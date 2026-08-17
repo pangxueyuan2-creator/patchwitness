@@ -72,7 +72,7 @@ def capture_evidence(
                 Finding(
                     "PW032",
                     Severity.ERROR,
-                    "repository content changed while checks were running; refusing stale evidence",
+                    "recorded change moved while checks were running; refusing stale evidence",
                     drifted,
                 ),
             )
@@ -136,7 +136,13 @@ def capture_evidence(
 def _drifted_paths(
     recorded: tuple[FileChange, ...], current: tuple[FileChange, ...]
 ) -> tuple[str, ...]:
-    """Return paths whose commit-relevant change state moved during verification."""
+    """Return recorded paths whose commit-relevant state moved during verification.
+
+    Checks commonly create new untracked build/test artifacts (for example
+    ``__pycache__``) that were never part of the captured change. Those do not
+    make the already-recorded evidence stale. A recorded path disappearing,
+    changing content/status, or changing rename provenance does.
+    """
 
     def fingerprint(change: FileChange) -> tuple[str, str | None, str | None, str | None]:
         return (
@@ -148,9 +154,12 @@ def _drifted_paths(
 
     recorded_by_path = {change.path: fingerprint(change) for change in recorded}
     current_by_path = {change.path: fingerprint(change) for change in current}
-    all_paths = recorded_by_path.keys() | current_by_path.keys()
     return tuple(
-        sorted(path for path in all_paths if recorded_by_path.get(path) != current_by_path.get(path))
+        sorted(
+            path
+            for path, recorded_fingerprint in recorded_by_path.items()
+            if current_by_path.get(path) != recorded_fingerprint
+        )
     )
 
 
