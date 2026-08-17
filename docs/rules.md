@@ -50,7 +50,9 @@ secret type, path, and line; the value is never copied into evidence.
 
 ## PW032
 
-In non-clean-room mode, repository change state moved after it was captured but before verification
-finished. This can happen when a check modifies, stages, unstages, creates, deletes, or renames files
-in the live working tree. PatchWitness refuses to issue stale evidence: PW032 is an error and the gate
-fails. Use `--clean-room` when checks should have no opportunity to mutate the captured repository.
+In non-clean-room mode, a path that was part of the captured change moved after it was hashed but
+before verification finished. This includes content, status, deletion, or rename-provenance changes
+to recorded paths. PatchWitness refuses to issue stale evidence: PW032 is an error and the gate
+fails. New untracked build/test artifacts created by checks are not themselves PW032 because they
+were never part of the recorded change; the final repository `dirty` flag still reflects them. Use
+`--clean-room` when checks should have no opportunity to mutate the live repository at all.
