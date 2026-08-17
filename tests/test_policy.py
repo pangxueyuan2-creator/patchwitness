@@ -89,6 +89,28 @@ def test_directory_patterns_and_trailing_slash() -> None:
         assert "src/utils/helper.py" not in paths
 
 
+def test_single_star_does_not_cross_directory_boundaries() -> None:
+    contract = Contract(allowed_paths=("src/*.py",), require_tests=False)
+    findings = evaluate_policy(
+        contract,
+        [change("src/app.py"), change("src/nested/app.py"), change("src/app.txt")],
+    )
+    paths = {finding.path for finding in findings if finding.rule_id == "PW002"}
+    assert "src/app.py" not in paths
+    assert "src/nested/app.py" in paths
+    assert "src/app.txt" in paths
+
+
+def test_double_star_keeps_recursive_glob_semantics() -> None:
+    contract = Contract(allowed_paths=("src/**/*.py",), require_tests=False)
+    findings = evaluate_policy(
+        contract,
+        [change("src/app.py"), change("src/nested/app.py"), change("src/deep/more/app.py")],
+    )
+    paths = {finding.path for finding in findings if finding.rule_id == "PW002"}
+    assert paths == set()
+
+
 def test_exact_path_and_nested_prefix() -> None:
     contract = Contract(allowed_paths=("src/app.py",), require_tests=False)
     findings = evaluate_policy(
