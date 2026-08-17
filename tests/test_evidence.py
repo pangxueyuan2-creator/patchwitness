@@ -154,6 +154,7 @@ def test_staged_protected_change_with_clean_worktree_is_blocked(tmp_path: Path) 
     workflow.write_text("on: push\n", encoding="utf-8")
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-m", "base")
+    # Stage a protected edit, then restore the working tree to base content.
     staged_content = "jobs:\n  evil:\n    runs-on: ubuntu-latest\n"
     workflow.write_text(staged_content, encoding="utf-8")
     git(tmp_path, "add", ".github/workflows/ci.yml")
@@ -223,6 +224,9 @@ def _blob_sha256(root: Path, spec: str) -> str:
 
 
 def test_staged_content_hash_wins_over_divergent_worktree(tmp_path: Path) -> None:
+    """A commit records the index blob; the evidence after-hash must match it,
+    not the divergent working-tree bytes."""
+
     root = repository(tmp_path)
     staged = "print('staged')\n"
     worktree = "print('worktree')\n"
@@ -238,6 +242,9 @@ def test_staged_content_hash_wins_over_divergent_worktree(tmp_path: Path) -> Non
 
 
 def test_staged_delete_with_untracked_replacement_stays_a_deletion(tmp_path: Path) -> None:
+    """Staged deletion + untracked same-content replacement must report D,
+    not a misleading addition."""
+
     root = repository(tmp_path)
     original = (root / "app.py").read_text(encoding="utf-8")
     git(root, "rm", "--cached", "-q", "app.py")
