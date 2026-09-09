@@ -85,7 +85,10 @@ def test_clean_room_gate_handles_committed_head_diff_and_writes_verifiable_evide
     assert not list(tmp_path.parent.glob("patchwitness-cleanroom-*"))
 
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink creation requires elevated privileges on Windows")
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="symlink creation requires elevated privileges on Windows",
+)
 def test_copy_untracked_rejects_target_symlink_escape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
