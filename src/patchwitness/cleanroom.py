@@ -80,6 +80,7 @@ def _copy_untracked(root: Path, worktree: Path) -> None:
     if result.returncode != 0:
         raise CleanRoomError(f"cannot enumerate untracked files: {result.stderr.strip()}")
     repository_root = root.resolve(strict=True)
+    worktree_root = worktree.resolve(strict=True)
     for raw in result.stdout.split("\0"):
         if not raw or raw.startswith(".patchwitness/evidence/"):
             continue
@@ -93,7 +94,21 @@ def _copy_untracked(root: Path, worktree: Path) -> None:
         except (OSError, ValueError):
             detail = "untracked path resolves outside repository and is not accepted in clean room"
             raise CleanRoomError(f"{detail}: {raw}") from None
+        try:
+            resolved_parent = target.parent.resolve(strict=False)
+            resolved_parent.relative_to(worktree_root)
+        except (OSError, ValueError):
+            detail = "untracked target resolves outside clean room and is not accepted"
+            raise CleanRoomError(f"{detail}: {raw}") from None
         target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_symlink():
+            raise CleanRoomError(f"untracked target symlinks are not accepted in clean room: {raw}")
+        try:
+            resolved_target = target.resolve(strict=False)
+            resolved_target.relative_to(worktree_root)
+        except (OSError, ValueError):
+            detail = "untracked target resolves outside clean room and is not accepted"
+            raise CleanRoomError(f"{detail}: {raw}") from None
         if resolved_source.is_file():
             shutil.copy2(resolved_source, target)
 
