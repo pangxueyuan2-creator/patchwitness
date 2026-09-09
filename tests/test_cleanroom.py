@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from patchwitness.cleanroom import CleanRoomError, clean_room
+from patchwitness.cleanroom import CleanRoomError, _copy_untracked, clean_room
 from patchwitness.cli import main
 from patchwitness.evidence import load_evidence, verify_evidence
 
@@ -83,6 +83,31 @@ def test_clean_room_gate_handles_committed_head_diff_and_writes_verifiable_evide
     assert [change["path"] for change in pack.changes] == ["app.py"]
     assert pack.extensions["verification"]["clean_room"] is True
     assert not list(tmp_path.parent.glob("patchwitness-cleanroom-*"))
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink creation requires elevated privileges on Windows")
+def test_copy_untracked_rejects_target_symlink_escape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "repo"
+    worktree = tmp_path / "worktree"
+    outside = tmp_path / "outside"
+    source_dir = root / "linked-outside"
+    root.mkdir()
+    worktree.mkdir()
+    outside.mkdir()
+    source_dir.mkdir()
+    (source_dir / "payload.txt").write_text("safe source\n", encoding="utf-8")
+    (worktree / "linked-outside").symlink_to(outside, target_is_directory=True)
+
+    listed = subprocess.CompletedProcess(
+        args=["git"], returncode=0, stdout="linked-outside/payload.txt\0", stderr=""
+    )
+    monkeypatch.setattr("patchwitness.cleanroom._git", lambda *_args: listed)
+
+    with pytest.raises(CleanRoomError, match="target resolves outside clean room"):
+        _copy_untracked(root, worktree)
+    assert not (outside / "payload.txt").exists()
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows directory junction regression")
