@@ -78,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     scan_parser.add_argument(
         "--base",
-        help="trusted base revision; defaults to HEAD for local changes or HEAD^ for a clean tree",
+        help="trusted base revision; auto-selects HEAD or HEAD^ and fails closed without a parent",
     )
     scan_parser.add_argument("--output", help="evidence JSON path")
     scan_parser.add_argument("--no-checks", action="store_true", help="inspect structure only")
@@ -531,8 +531,11 @@ def _select_scan_base(root: Path, requested: str | None) -> tuple[str, str]:
         return "HEAD", "uncommitted working-tree changes"
     try:
         resolve_revision(root, "HEAD^")
-    except GitError:
-        return "HEAD", "initial commit; no parent is available"
+    except GitError as exc:
+        raise GitError(
+            "Smart scan cannot establish a parent baseline for a clean initial commit; "
+            "pass --base explicitly if a zero-change comparison is intentional."
+        ) from exc
     return "HEAD^", "clean tree; inspecting the latest commit"
 
 
