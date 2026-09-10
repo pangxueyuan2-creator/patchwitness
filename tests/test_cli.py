@@ -174,10 +174,10 @@ def test_shallow_clone_policy_ref_missing_object_fails_explicitly(
     assert not (shallow / "evidence.json").exists()
 
 
-def test_smart_scan_on_single_commit_repo_falls_back_to_head(
+def test_smart_scan_on_single_commit_repo_fails_closed(
     tmp_path: Path, monkeypatch: object
 ) -> None:
-    """A shallow or brand-new repo with no parent must not crash; base becomes HEAD."""
+    """A clean root commit needs an explicit baseline instead of a false PASS."""
 
     git(tmp_path, "init", "-b", "main")
     git(tmp_path, "config", "user.email", "tests@patchwitness.dev")
@@ -189,8 +189,5 @@ def test_smart_scan_on_single_commit_repo_falls_back_to_head(
 
     result = main(["scan", "--no-checks", "--output", "evidence.json"])
 
-    assert result == 0
-    pack = load_evidence(tmp_path / "evidence.json")
-    assert pack.repository["base_revision"]  # resolved SHA, not empty
-    # no parent available → empty or structural-only change set is acceptable
-    assert pack.summary["checks_total"] == 0
+    assert result == 2
+    assert not (tmp_path / "evidence.json").exists()
