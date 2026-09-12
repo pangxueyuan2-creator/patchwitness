@@ -88,6 +88,15 @@ is executed. No fixture is pushed and no hosted PR or CI result is fabricated.
 
 ## Trust and product limits
 
+`patchwitness.hosted_evidence` normalizes explicitly supplied collector snapshots.
+CI policy pins both check name and GitHub App ID, considers the latest run ID,
+and rejects stale heads; queued, missing, truncated, neutral and skipped checks
+cannot pass. Review policy requires exact-head non-author approvals and no
+unresolved threads or requests for changes. Inputs and the actual selected check
+or approval policy are bound into the details digest. The caller still must
+authenticate the collector, its repository/PR association, freshness, pagination
+and reviewer eligibility. The module does not fetch GitHub or authenticate JSON.
+
 Digests provide content identity and integrity, **not confidentiality, signatures
 or producer authentication**. Anyone controlling both an envelope and its hash
 can replace it. The policy/pin source, adapters, Python/Node runtime and local OS
