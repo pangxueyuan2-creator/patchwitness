@@ -50,9 +50,24 @@ secret type, path, and line; the value is never copied into evidence.
 
 ## PW032
 
-In non-clean-room mode, a path that was part of the captured change moved after it was hashed but
-before verification finished. This includes content, status, deletion, or rename-provenance changes
-to recorded paths. PatchWitness refuses to issue stale evidence: PW032 is an error and the gate
-fails. New untracked build/test artifacts created by checks are not themselves PW032 because they
-were never part of the recorded change; the final repository `dirty` flag still reflects them. Use
-`--clean-room` when checks should have no opportunity to mutate the live repository at all.
+A path that was part of the captured change moved after it was hashed but before verification
+finished, or repository HEAD/branch moved during capture. This includes content, status, deletion,
+or rename-provenance changes to recorded paths. The source repository is checked in both live
+and clean-room execution modes. Evidence retains the initially observed HEAD and branch.
+PatchWitness refuses to issue stale evidence: PW032 is an error and the gate fails. New untracked
+build/test artifacts created by checks are not themselves PW032 because they were never part of
+the recorded change; the final repository `dirty` flag still reflects them. Clean rooms isolate
+ordinary relative writes, but they are not a process sandbox or an atomic source snapshot.
+
+## PW033
+
+A path changed in the index relative to the base has different working-tree content, a staged
+deletion has a remaining working-tree replacement, or index flags prevent a reliable comparison.
+Evidence records the index version while live checks and clean-room materialization read the
+working tree. PatchWitness rejects this ambiguous state before running checks, and checks for
+new ambiguity again after execution. Stage the intended content or unstage the path before
+retrying. Normal Git line-ending conversions do not by themselves cause this rule to fail.
+
+The rule also applies to `--no-checks`. Skipped required checks retain PW020; an absent test result
+cannot be interpreted as a successful result. This comparison does not provide process isolation
+or an atomic filesystem snapshot.

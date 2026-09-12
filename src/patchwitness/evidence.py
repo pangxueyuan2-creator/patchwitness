@@ -43,8 +43,11 @@ def capture_evidence(
 ) -> EvidencePack:
     repository = git.find_root(root)
     base_revision = git.resolve_revision(repository, base)
+    source_head = git.head_revision(repository)
+    source_branch = git.branch_name(repository)
     changes = git.collect_changes(repository, base_revision)
-    if execute_checks and clean_room_checks:
+    conflicts = set(git.verification_conflicts(repository, base_revision))
+    if execute_checks and clean_room_checks and not conflicts:
         with clean_room(repository, base_revision) as verifier_root:
             check_results = run_checks(
                 verifier_root,
@@ -53,7 +56,7 @@ def capture_evidence(
                 max_workers=max_workers,
                 untrusted=True,
             )
-    elif execute_checks:
+    elif execute_checks and not conflicts:
         check_results = run_checks(
             repository,
             contract.checks,
@@ -65,7 +68,22 @@ def capture_evidence(
     findings = evaluate_policy(contract, changes, check_results) + scan_changed_files(
         repository, changes
     )
-    if execute_checks and not clean_room_checks:
+    if execute_checks:
+        conflicts.update(git.verification_conflicts(repository, base_revision))
+    findings += tuple(
+        Finding(
+            "PW033",
+            Severity.ERROR,
+            "index and working-tree verification content disagree or cannot be compared safely",
+            path,
+        )
+        for path in sorted(conflicts)
+    )
+    impact = analyze_impact(repository, changes)
+    analyzer_extensions = run_analyzers(
+        AnalyzerContext(repository, base_revision, contract, changes)
+    )
+    if execute_checks:
         current_changes = git.collect_changes(repository, base_revision)
         for drifted in _drifted_paths(changes, current_changes):
             findings += (
@@ -76,10 +94,17 @@ def capture_evidence(
                     drifted,
                 ),
             )
-    impact = analyze_impact(repository, changes)
-    analyzer_extensions = run_analyzers(
-        AnalyzerContext(repository, base_revision, contract, changes)
-    )
+    if (
+        git.head_revision(repository) != source_head
+        or git.branch_name(repository) != source_branch
+    ):
+        findings += (
+            Finding(
+                "PW032",
+                Severity.ERROR,
+                "repository HEAD or branch moved during capture; refusing stale evidence",
+            ),
+        )
     status = (
         GateStatus.FAIL
         if any(finding.severity == Severity.ERROR for finding in findings)
@@ -93,8 +118,8 @@ def capture_evidence(
         "repository": {
             "root_name": repository.name,
             "base_revision": base_revision,
-            "head_revision": git.head_revision(repository),
-            "branch": git.branch_name(repository),
+            "head_revision": source_head,
+            "branch": source_branch,
             "remote": git.remote_url(repository),
             "dirty": git.is_dirty(repository),
         },
