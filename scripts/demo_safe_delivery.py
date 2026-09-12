@@ -270,7 +270,7 @@ def analyze_fixture(
     from tasktopr.security import run_safe_command
 
     from patchwitness.git import collect_changes
-    from patchwitness.models import CheckResult, Contract, Severity
+    from patchwitness.models import CheckResult, CheckSpec, Contract, Severity
     from patchwitness.policy import evaluate_policy
     from patchwitness.safe_delivery import (
         ChangeSubject,
@@ -365,7 +365,11 @@ def analyze_fixture(
     artifact = scan_project(source_snapshot)
     artifact.findings.extend(fail_closed_findings(source_snapshot, artifact))
     artifact_decision = D.FAIL if has_severity(artifact) else D.REVIEW_REQUIRED
-    contract = Contract(id="fixed-api-demo-v1", allowed_paths=("api.py", "test_api.py"))
+    contract = Contract(
+        id="fixed-api-demo-v1",
+        allowed_paths=("api.py", "test_api.py"),
+        checks=(CheckSpec("full-suite", "python -m unittest discover -v", timeout_seconds=15),),
+    )
     check = CheckResult(
         "full-suite",
         "python -m unittest discover -v",
@@ -477,8 +481,6 @@ def analyze_fixture(
         subject, records, trusted_tools=trusted, policy_sha256=policy_sha, stage="pr"
     )
     expected = "FAIL" if unsafe else "REVIEW_REQUIRED"
-    if report["payload"]["decision"] != expected:
-        raise AssertionError(f"Expected {expected}, got {report['payload']['decision']}")
     write_json(scratch / "safe-change.json", report)
     write_json(scratch / "safe-change.sarif", safe_delivery_sarif(report))
     (scratch / "summary.md").write_text(safe_delivery_summary(report), encoding="utf-8")
@@ -500,6 +502,8 @@ def analyze_fixture(
         "rule_relay_transformed_sha256": content_digest(node["transforms"]),
     }
     write_json(scratch / "fixture-details.json", details)
+    if report["payload"]["decision"] != expected:
+        raise AssertionError(f"Expected {expected}, got {report['payload']['decision']}")
     return report
 
 
