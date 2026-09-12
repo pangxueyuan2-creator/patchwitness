@@ -110,6 +110,11 @@ These answer different questions and do not depend on each other:
 
 Use any combination, or none of them.
 
+The optional [Safe Delivery integration](docs/safe-delivery.md) composes exact-version
+evidence from TaskToPR and the static analysis/security tools into JSON, SARIF and
+a content-addressed receipt. Its local nine-component fixture demo preserves
+`FAIL`, `REVIEW_REQUIRED` and `UNKNOWN`; it does not authorize unattended releases.
+
 ## Status
 
 Public alpha (v0.2.x). Evidence schema v1 is stable.  

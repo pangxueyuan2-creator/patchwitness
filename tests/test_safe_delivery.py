@@ -21,7 +21,7 @@ from patchwitness.safe_delivery import (
     DeliveryDecision as D,
 )
 
-SUBJECT = ChangeSubject("a" * 64, "b" * 40, "c" * 40, "d" * 64)
+SUBJECT = ChangeSubject("a" * 64, "b" * 40, "c" * 40, "d" * 64, "0" * 64)
 PINS = {name: (name + "-producer", "e" * 40) for name in COMPONENTS}
 
 
@@ -154,9 +154,17 @@ def test_report_tampering_is_detected() -> None:
         verify_safe_delivery(report)
 
 
-def test_policy_identity_changes_receipt() -> None:
-    report = compose_safe_delivery(SUBJECT, evidence(), trusted_tools=PINS, policy_sha256="1" * 64)
-    assert report["receipt_sha256"] != compose()["receipt_sha256"]
+def test_policy_identity_cannot_relabel_prior_evidence() -> None:
+    with pytest.raises(ValueError, match="different policy"):
+        compose_safe_delivery(SUBJECT, evidence(), trusted_tools=PINS, policy_sha256="1" * 64)
+
+
+@pytest.mark.parametrize("policy", ["private prompt", "a" * 63, "A" * 64, "a" * 65])
+def test_component_policy_digest_cannot_carry_raw_text(policy: str) -> None:
+    records = evidence()
+    records[0] = replace(records[0], subject=replace(SUBJECT, policy_sha256=policy))
+    with pytest.raises(ValueError, match="SHA-256"):
+        compose(records)
 
 
 def test_public_json_contains_no_arbitrary_raw_text() -> None:
@@ -177,3 +185,23 @@ def test_unpinned_policy_is_rejected() -> None:
         compose_safe_delivery(
             SUBJECT, evidence(), trusted_tools={"api": ("api", "latest")}, policy_sha256="0" * 64
         )
+
+
+@pytest.mark.parametrize("section", ["api", "provenance", "top"])
+def test_self_consistent_digest_does_not_allow_raw_extra_fields(section: str) -> None:
+    report = compose()
+    target = report["payload"] if section == "top" else report["payload"][section]
+    target["secret_output"] = "PRIVATE PROMPT"
+    report["receipt_sha256"] = content_digest(report["payload"])
+    with pytest.raises(ValueError):
+        safe_delivery_sarif(report)
+
+
+def test_rehashed_wrong_decision_is_rejected() -> None:
+    records = evidence()
+    records[0] = replace(records[0], decision=D.FAIL)
+    report = compose(records)
+    report["payload"]["decision"] = "PASS"
+    report["receipt_sha256"] = content_digest(report["payload"])
+    with pytest.raises(ValueError):
+        verify_safe_delivery(report)

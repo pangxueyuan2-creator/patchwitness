@@ -46,6 +46,7 @@ class ChangeSubject:
     base_sha: str
     head_sha: str
     manifest_sha256: str
+    policy_sha256: str
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -53,6 +54,7 @@ class ChangeSubject:
             "base_sha": self.base_sha,
             "head_sha": self.head_sha,
             "manifest_sha256": self.manifest_sha256,
+            "policy_sha256": self.policy_sha256,
         }
 
     def validate(self) -> None:
@@ -60,10 +62,11 @@ class ChangeSubject:
             raise ValueError("subject fields must be strings")
         if not _SHA.fullmatch(self.base_sha) or not _SHA.fullmatch(self.head_sha):
             raise ValueError("subject requires exact 40-character Git revisions")
-        if not _DIGEST.fullmatch(self.repository_sha256) or not _DIGEST.fullmatch(
-            self.manifest_sha256
+        if any(
+            not _DIGEST.fullmatch(value)
+            for value in (self.repository_sha256, self.manifest_sha256, self.policy_sha256)
         ):
-            raise ValueError("subject requires repository and manifest SHA-256 identities")
+            raise ValueError("subject requires repository, manifest and policy SHA-256 identities")
 
 
 @dataclass(frozen=True)
@@ -147,6 +150,8 @@ def compose_safe_delivery(
         or not _DIGEST.fullmatch(policy_sha256)
     ):
         raise ValueError("invalid delivery stage or policy identity")
+    if subject.policy_sha256 != policy_sha256:
+        raise ValueError("evidence subject belongs to a different policy")
     if len(evidence) > len(COMPONENTS) or set(trusted_tools) - set(COMPONENTS):
         raise ValueError("unexpected or excessive components")
     for value in trusted_tools.values():
@@ -229,14 +234,88 @@ def compose_safe_delivery(
 
 
 def verify_safe_delivery(report: Mapping[str, Any]) -> dict[str, Any]:
-    """Check transport integrity; this cannot authenticate a self-asserted producer."""
+    """Validate schema, decision semantics and integrity, not producer authenticity."""
+    try:
+        return _verify_report(report)
+    except (KeyError, TypeError, AttributeError, RecursionError) as error:
+        raise ValueError("invalid safe delivery structure") from error
+
+
+def _verify_report(report: Mapping[str, Any]) -> dict[str, Any]:
     if set(report) != {"payload", "receipt_sha256"} or not isinstance(report["payload"], dict):
         raise ValueError("invalid safe delivery envelope")
-    payload = report["payload"]
-    if payload.get("schema_version") != SCHEMA or report["receipt_sha256"] != content_digest(
-        payload
+    if not isinstance(report["receipt_sha256"], str) or not _DIGEST.fullmatch(
+        report["receipt_sha256"]
     ):
-        raise ValueError("invalid safe delivery schema or digest")
+        raise ValueError("invalid receipt digest")
+    payload = report["payload"]
+    if set(payload) != {
+        "schema_version",
+        "stage",
+        "decision",
+        *COMPONENTS,
+        "policy_identity_sha256",
+        "provenance",
+        "findings",
+    }:
+        raise ValueError("invalid safe delivery payload fields")
+    if payload["schema_version"] != SCHEMA:
+        raise ValueError("invalid safe delivery schema")
+    provenance = payload["provenance"]
+    if set(provenance) != {"subject", "trusted_tools", "hash_semantics"}:
+        raise ValueError("invalid provenance fields")
+    subject = ChangeSubject(**provenance["subject"])
+    subject.validate()
+    tools = provenance["trusted_tools"]
+    if not isinstance(tools, dict) or len(tools) > len(COMPONENTS):
+        raise ValueError("invalid producer policy")
+    pins = {}
+    for name, value in tools.items():
+        if set(value) != {"name", "revision"}:
+            raise ValueError("invalid producer pin")
+        pins[name] = (value["name"], value["revision"])
+    records = []
+    for name in COMPONENTS:
+        section = payload[name]
+        if section == {"decision": "UNKNOWN", "complete": False}:
+            continue
+        if set(section) != {
+            "tool",
+            "tool_revision",
+            "decision",
+            "complete",
+            "details_sha256",
+            "rule_ids",
+            "metrics",
+            "producer_decision",
+            "subject",
+        }:
+            raise ValueError("invalid component fields")
+        records.append(
+            ComponentEvidence(
+                name,
+                section["tool"],
+                section["tool_revision"],
+                ChangeSubject(**section["subject"]),
+                DeliveryDecision(section["producer_decision"]),
+                section["complete"],
+                section["details_sha256"],
+                tuple(section["rule_ids"]),
+                section["metrics"],
+            )
+        )
+    findings = payload["findings"]
+    if not isinstance(findings, list) or len(findings) > 3 * len(COMPONENTS):
+        raise ValueError("invalid findings budget")
+    expected = compose_safe_delivery(
+        subject,
+        records,
+        trusted_tools=pins,
+        policy_sha256=payload["policy_identity_sha256"],
+        stage=payload["stage"],
+    )
+    if expected != report:
+        raise ValueError("safe delivery semantics or digest mismatch")
     return dict(payload)
 
 
