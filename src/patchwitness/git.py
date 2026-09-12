@@ -197,6 +197,46 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
     return tuple(changes)
 
 
+def verification_conflicts(root: Path, base_revision: str) -> tuple[str, ...]:
+    """Find index changes that checks would observe differently in the worktree.
+
+    Evidence records index blobs for paths changed in the index relative to
+    the base. Both live checks and clean-room materialization read worktree
+    content, so divergent versions of those paths cannot share check evidence.
+    Git's comparison preserves configured line-ending semantics. Masked index
+    paths are rejected conservatively because Git may omit them.
+    """
+    staged = {
+        path: status
+        for path, status, _previous in _parse_name_status_z(
+            _run(
+                root, "diff", "--cached", "--name-status", "-z", "--no-renames",
+                "--no-ext-diff", base_revision, "--",
+            ).stdout
+        )
+    }
+    if not staged:
+        return ()
+    unstaged = {
+        path.replace("\\", "/")
+        for path in _run(
+            root, "diff", "--name-only", "-z", "--no-ext-diff", "--no-textconv",
+            "--ignore-submodules=none", "--",
+        ).stdout.split("\0")
+    }
+    conflicts = set(staged) & unstaged
+    # A staged deletion leaves its replacement untracked, outside the index diff.
+    for path, status in staged.items():
+        if status.startswith("D") and os.path.lexists(root / path):
+            conflicts.add(path)
+    for entry in _run(root, "ls-files", "-v", "-z").stdout.split("\0"):
+        if len(entry) >= 3 and (entry[0].islower() or entry[0] == "S"):
+            path = entry[2:].replace("\\", "/")
+            if path in staged:
+                conflicts.add(path)
+    return tuple(sorted(conflicts))
+
+
 def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
     """Parse `git diff --name-status -z`. Rename/copy is STATUS\\0old\\0new\\0."""
 
