@@ -8,10 +8,12 @@ from pathlib import Path
 import pytest
 
 from patchwitness.passport import (
+    MAX_PASSPORT_BYTES,
     PassportError,
     build_tasktopr_passport,
     derive_change_subject,
     exact_manifest_sha256,
+    load_passport,
     main,
 )
 from patchwitness.safe_delivery import content_digest, verify_safe_delivery
@@ -187,3 +189,60 @@ def test_cli_writes_verifiable_passport(tmp_path: Path, monkeypatch: pytest.Monk
 
     assert status == 0
     verify_safe_delivery(json.loads(output.read_text(encoding="utf-8")))
+
+
+def test_offline_loader_rejects_duplicate_keys_oversize_and_symlink(tmp_path: Path) -> None:
+    duplicate = tmp_path / "duplicate.json"
+    duplicate.write_text(
+        '{"payload":{},"payload":{},"receipt_sha256":"' + "0" * 64 + '"}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(PassportError, match="duplicate JSON key: payload"):
+        load_passport(duplicate)
+
+    oversized = tmp_path / "oversized.json"
+    oversized.write_bytes(b" " * (MAX_PASSPORT_BYTES + 1))
+    with pytest.raises(PassportError, match="byte budget"):
+        load_passport(oversized)
+
+    regular = tmp_path / "regular.json"
+    regular.write_text("{}\n", encoding="utf-8")
+    symlink = tmp_path / "passport-link.json"
+    try:
+        symlink.symlink_to(regular)
+    except OSError:
+        pytest.skip("symlinks are unavailable on this platform")
+    with pytest.raises(PassportError, match="non-symlink"):
+        load_passport(symlink)
+
+
+def test_verify_cli_reports_decision_and_rejects_tampering(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, base, head = _repository(tmp_path)
+    handoff = tmp_path / "handoff.json"
+    passport = tmp_path / "passport.json"
+    _write_handoff(handoff, _handoff(root, base, head))
+    report = build_tasktopr_passport(
+        root,
+        handoff_path=handoff,
+        tasktopr_revision=TASKTOPR_REVISION,
+        base_sha=base,
+        policy_ref=base,
+    )
+    passport.write_text(json.dumps(report, sort_keys=True) + "\n", encoding="utf-8")
+
+    assert main(["--json", "verify", str(passport)]) == 0
+    verified = json.loads(capsys.readouterr().out)
+    assert verified["ok"] is True
+    assert verified["decision"] == "UNKNOWN"
+    assert verified["components"]["execution"] == "PASS"
+    assert verified["components"]["review"] == "UNKNOWN"
+
+    report["receipt_sha256"] = "0" * 64
+    passport.write_text(json.dumps(report, sort_keys=True) + "\n", encoding="utf-8")
+    assert main(["--json", "verify", str(passport)]) == 2
+    rejected = json.loads(capsys.readouterr().out)
+    assert rejected["ok"] is False
+    assert "mismatch" in rejected["error"]
