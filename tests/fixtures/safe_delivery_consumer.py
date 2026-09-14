@@ -57,7 +57,7 @@ def _report(
                 details_sha256=content_digest(
                     {"fixture": "external-consumer", "component": component}
                 ),
-                rule_ids=(f"FIXTURE_{component.upper()}",),
+                rule_ids=(f"FIXTURE-{component.upper()}",),
                 metrics={"evidence_items": 1},
             )
         )
