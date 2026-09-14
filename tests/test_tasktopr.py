@@ -63,7 +63,9 @@ def _rehash(report: dict[str, object]) -> None:
 
 
 def test_adapter_promotes_verified_execution_facts_under_patchwitness_subject() -> None:
-    record = adapt_tasktopr_execution(_handoff(), subject=SUBJECT, trusted_revision=TRUSTED_REVISION)
+    record = adapt_tasktopr_execution(
+        _handoff(), subject=SUBJECT, trusted_revision=TRUSTED_REVISION
+    )
     assert record.component == "execution"
     assert record.tool == "tasktopr"
     assert record.tool_revision == TRUSTED_REVISION
