@@ -20,7 +20,10 @@ from patchwitness.safe_delivery import (
     content_digest,
 )
 
-TASKTOPR_HANDOFF_SCHEMA = "tasktopr.dev/safe-delivery/execution/v1"
+TASKTOPR_HANDOFF_SCHEMA_V1 = "tasktopr.dev/safe-delivery/execution/v1"
+TASKTOPR_HANDOFF_SCHEMA_V2 = "tasktopr.dev/safe-delivery/execution/v2"
+# Backward-compatible alias for callers that imported the original schema constant.
+TASKTOPR_HANDOFF_SCHEMA = TASKTOPR_HANDOFF_SCHEMA_V1
 TASKTOPR_TRUST_BOUNDARY = (
     "sanitized TaskToPR execution evidence; identity/integrity only; "
     "not confidentiality, a signature, producer authentication, or merge authorization"
@@ -70,6 +73,47 @@ def _revision(value: Any, name: str) -> str:
     if not _SHA.fullmatch(text):
         raise TaskToPREvidenceError(f"{name} must be an exact lowercase Git SHA-1")
     return text
+
+
+def _plan_approval(value: Any) -> tuple[bool, bool]:
+    """Validate v2 approval provenance and return (required, satisfied)."""
+    approval = _object(value, "plan_approval")
+    if set(approval) != {
+        "mode",
+        "decision",
+        "edited",
+        "original_plan_sha256",
+        "final_plan_sha256",
+        "record_sha256",
+    }:
+        raise TaskToPREvidenceError("TaskToPR plan approval has unexpected fields")
+    mode = _string(approval["mode"], "plan_approval.mode")
+    decision = _string(approval["decision"], "plan_approval.decision")
+    edited = approval["edited"]
+    if type(edited) is not bool:
+        raise TaskToPREvidenceError("TaskToPR plan approval edited flag must be boolean")
+
+    if mode == "off":
+        if (
+            decision != "not_required"
+            or edited
+            or approval["original_plan_sha256"] is not None
+            or approval["final_plan_sha256"] is not None
+            or approval["record_sha256"] is not None
+        ):
+            raise TaskToPREvidenceError("TaskToPR disabled plan approval is inconsistent")
+        return False, False
+
+    if mode != "prompt" or decision not in {"approve", "edit"}:
+        raise TaskToPREvidenceError("TaskToPR plan approval is not a completed human decision")
+    original = _digest(approval["original_plan_sha256"], "plan_approval.original_plan_sha256")
+    final = _digest(approval["final_plan_sha256"], "plan_approval.final_plan_sha256")
+    _digest(approval["record_sha256"], "plan_approval.record_sha256")
+    if edited is not (original != final):
+        raise TaskToPREvidenceError("TaskToPR plan approval edit identity is inconsistent")
+    if decision == "approve" and edited:
+        raise TaskToPREvidenceError("TaskToPR approve decision cannot replace the plan")
+    return True, True
 
 
 def load_tasktopr_handoff(path: Path) -> dict[str, Any]:
@@ -124,7 +168,9 @@ def adapt_tasktopr_execution(
     receipt_sha256 = _digest(report["receipt_sha256"], "receipt_sha256")
     if content_digest(payload) != receipt_sha256:
         raise TaskToPREvidenceError("TaskToPR handoff digest does not match its payload")
-    if set(payload) != {
+
+    schema = payload.get("schema_version")
+    common_fields = {
         "schema_version",
         "component",
         "producer",
@@ -133,9 +179,21 @@ def adapt_tasktopr_execution(
         "verification",
         "source_receipt",
         "trust_boundary",
-    }:
-        raise TaskToPREvidenceError("TaskToPR handoff payload has unexpected fields")
-    if payload["schema_version"] != TASKTOPR_HANDOFF_SCHEMA or payload["component"] != "execution":
+    }
+    if schema == TASKTOPR_HANDOFF_SCHEMA_V1:
+        if set(payload) != common_fields:
+            raise TaskToPREvidenceError("TaskToPR handoff payload has unexpected fields")
+        source_schema = 1
+        approval_required = False
+        approval_satisfied = False
+    elif schema == TASKTOPR_HANDOFF_SCHEMA_V2:
+        if set(payload) != common_fields | {"plan_approval"}:
+            raise TaskToPREvidenceError("TaskToPR handoff payload has unexpected fields")
+        source_schema = 2
+        approval_required, approval_satisfied = _plan_approval(payload["plan_approval"])
+    else:
+        raise TaskToPREvidenceError("unsupported TaskToPR execution handoff schema")
+    if payload["component"] != "execution":
         raise TaskToPREvidenceError("unsupported TaskToPR execution handoff schema")
     if payload["trust_boundary"] != TASKTOPR_TRUST_BOUNDARY:
         raise TaskToPREvidenceError("TaskToPR trust-boundary declaration changed")
@@ -209,9 +267,20 @@ def adapt_tasktopr_execution(
     _digest(verification["test_result_sha256"], "verification.test_result_sha256")
 
     source_receipt = _object(payload["source_receipt"], "source_receipt")
-    if set(source_receipt) != {"schema_version", "sha256"} or source_receipt["schema_version"] != 1:
+    if (
+        set(source_receipt) != {"schema_version", "sha256"}
+        or source_receipt["schema_version"] != source_schema
+    ):
         raise TaskToPREvidenceError("TaskToPR source receipt identity is invalid")
     _digest(source_receipt["sha256"], "source_receipt.sha256")
+
+    rule_ids = ["TASKTOPR_VERIFIED_HEAD"]
+    metrics = {"changed_file_count": changed_file_count, "tests_count": tests_count}
+    if schema == TASKTOPR_HANDOFF_SCHEMA_V2:
+        metrics["plan_approval_required"] = int(approval_required)
+        metrics["plan_approval_satisfied"] = int(approval_satisfied)
+        if approval_satisfied:
+            rule_ids.append("TASKTOPR_PLAN_APPROVED")
 
     return ComponentEvidence(
         component="execution",
@@ -221,6 +290,6 @@ def adapt_tasktopr_execution(
         decision=DeliveryDecision.PASS,
         complete=True,
         details_sha256=receipt_sha256,
-        rule_ids=("TASKTOPR_VERIFIED_HEAD",),
-        metrics={"changed_file_count": changed_file_count, "tests_count": tests_count},
+        rule_ids=tuple(rule_ids),
+        metrics=metrics,
     )
