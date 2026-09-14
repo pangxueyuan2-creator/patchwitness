@@ -1,4 +1,4 @@
-"""User-facing composition of TaskToPR execution evidence with trusted Git facts.
+"""User-facing composition and offline verification of Safe Delivery passports.
 
 This module intentionally produces a PR-stage Safe Delivery passport containing
 only the TaskToPR execution component. Missing independent components remain
@@ -19,7 +19,7 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, cast
 
 from patchwitness.git import (
     find_root,
@@ -29,6 +29,7 @@ from patchwitness.git import (
     resolve_revision,
 )
 from patchwitness.safe_delivery import (
+    COMPONENTS,
     ChangeSubject,
     compose_safe_delivery,
     content_digest,
@@ -38,13 +39,29 @@ from patchwitness.tasktopr import adapt_tasktopr_execution, load_tasktopr_handof
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 MAX_POLICY_BYTES = 1024 * 1024
+MAX_PASSPORT_BYTES = 2 * 1024 * 1024
 GIT_TIMEOUT_SECONDS = 30
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
 _MANIFEST_DOMAIN = b"patchwitness-exact-commit-manifest-v1\0"
 
 
 class PassportError(ValueError):
-    """Raised when exact candidate or reviewer-controlled inputs are ambiguous."""
+    """Raised when exact candidate or passport inputs are ambiguous or unsafe."""
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise PassportError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _json_object(value: Any, name: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+        raise PassportError(f"{name} must be a JSON object")
+    return cast(dict[str, Any], value)
 
 
 def _exact_revision(value: str, name: str) -> str:
@@ -217,6 +234,48 @@ def build_tasktopr_passport(
     return report
 
 
+def load_passport(path: Path) -> dict[str, Any]:
+    """Load and semantically verify one bounded, regular Safe Delivery JSON file."""
+    try:
+        before = path.lstat()
+    except OSError as exc:
+        raise PassportError(f"unable to stat Safe Delivery passport: {exc}") from exc
+    if path.is_symlink() or not stat.S_ISREG(before.st_mode):
+        raise PassportError("Safe Delivery passport must be a regular non-symlink file")
+    if before.st_size > MAX_PASSPORT_BYTES:
+        raise PassportError("Safe Delivery passport exceeds the byte budget")
+    try:
+        data = path.read_bytes()
+        after = path.stat()
+    except OSError as exc:
+        raise PassportError(f"unable to read Safe Delivery passport: {exc}") from exc
+    if len(data) > MAX_PASSPORT_BYTES:
+        raise PassportError("Safe Delivery passport exceeds the byte budget")
+    before_identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_mode,
+    )
+    after_identity = (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_mode,
+    )
+    if path.is_symlink() or before_identity != after_identity:
+        raise PassportError("Safe Delivery passport changed while it was being read")
+    try:
+        value = json.loads(data.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise PassportError("Safe Delivery passport is not valid UTF-8 JSON") from exc
+    report = _json_object(value, "Safe Delivery passport")
+    verify_safe_delivery(report)
+    return report
+
+
 def _safe_output_parent(path: Path) -> Path:
     parent = path.parent if path.parent != Path("") else Path(".")
     try:
@@ -267,7 +326,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="patchwitness-safe-delivery",
         description=(
-            "Compose exact-subject Safe Delivery passports from reviewer-pinned external evidence."
+            "Compose and independently verify exact-subject Safe Delivery passports."
         ),
     )
     parser.add_argument("--json", action="store_true", help="emit machine-readable status")
@@ -284,13 +343,50 @@ def build_parser() -> argparse.ArgumentParser:
     tasktopr.add_argument("--policy-path", default=".patchwitness.toml")
     tasktopr.add_argument("--output", required=True, type=Path)
     tasktopr.add_argument("--force", action="store_true")
+    verify = commands.add_parser(
+        "verify",
+        help="verify a saved Safe Delivery passport offline without trusting its decision",
+    )
+    verify.add_argument("passport", type=Path)
     return parser
+
+
+def _verification_result(report: dict[str, Any], passport: Path) -> dict[str, Any]:
+    payload = verify_safe_delivery(report)
+    return {
+        "ok": True,
+        "decision": payload["decision"],
+        "stage": payload["stage"],
+        "receipt_sha256": report["receipt_sha256"],
+        "passport": str(passport),
+        "head_sha": payload["provenance"]["subject"]["head_sha"],
+        "components": {name: payload[name]["decision"] for name in COMPONENTS},
+    }
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Installed console entry point for cross-product Safe Delivery composition."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.command == "verify":
+        try:
+            result = _verification_result(load_passport(args.passport), args.passport)
+        except (OSError, PassportError, ValueError) as exc:
+            if args.json:
+                print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
+            else:
+                print(f"patchwitness-safe-delivery: error: {exc}", file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps(result, sort_keys=True))
+        else:
+            print(f"Safe Delivery passport verified: {result['decision']} ({result['stage']})")
+            print(f"  Head:    {result['head_sha']}")
+            print(f"  Receipt: {result['receipt_sha256']}")
+            print(f"  Input:   {result['passport']}")
+            print("  Meaning: integrity/semantics verified; producer identity is not authenticated")
+        return 0
+
     if args.command != "tasktopr":
         parser.error(f"unknown command: {args.command}")
     try:
