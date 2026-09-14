@@ -47,7 +47,6 @@ def test_built_wheel_external_consumer_verifies_all_decision_states(tmp_path: Pa
             "-m",
             "build",
             "--wheel",
-            "--no-isolation",
             "--outdir",
             str(distributions),
             str(REPOSITORY_ROOT),
