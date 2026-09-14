@@ -96,7 +96,7 @@ def test_subject_is_derived_from_exact_git_and_reviewed_policy(tmp_path: Path) -
     assert subject.base_sha == base
     assert subject.head_sha == head
     assert subject.manifest_sha256 == exact_manifest_sha256(root, base, head)
-    policy = _git(root, "show", f"{base}:.patchwitness.toml").encode()
+    policy = (root / ".patchwitness.toml").read_bytes()
     assert subject.policy_sha256 == hashlib.sha256(policy).hexdigest()
 
 
