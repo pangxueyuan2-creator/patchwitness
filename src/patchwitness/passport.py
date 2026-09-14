@@ -15,6 +15,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path, PurePosixPath
@@ -307,7 +308,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.json:
             print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
         else:
-            print(f"patchwitness-safe-delivery: error: {exc}", file=os.sys.stderr)
+            print(f"patchwitness-safe-delivery: error: {exc}", file=sys.stderr)
         return 2
     payload = report["payload"]
     result = {
