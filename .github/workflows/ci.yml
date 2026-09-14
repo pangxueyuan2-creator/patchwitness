@@ -75,6 +75,36 @@ jobs:
           name: distributions
           path: dist/*
 
+  tasktopr-integration:
+    runs-on: ubuntu-latest
+    env:
+      TASKTOPR_REVISION: 237bdc174f46d24ff6f10a3331f2b47e68535b4c
+    steps:
+      - name: Checkout PatchWitness candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Checkout reviewed TaskToPR producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: pangxueyuan2-creator/tasktopr
+          ref: ${{ env.TASKTOPR_REVISION }}
+          path: _integration/tasktopr
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
+      - name: Build both reviewed products
+        run: |
+          python -m pip install --disable-pip-version-check build
+          python -m build --wheel --outdir dist
+          python -m build --wheel --outdir _integration/tasktopr-dist _integration/tasktopr
+      - name: Run installed two-product Safe Delivery smoke
+        run: |
+          python -m venv /tmp/patchwitness-tasktopr
+          /tmp/patchwitness-tasktopr/bin/pip install --no-deps dist/*.whl _integration/tasktopr-dist/*.whl
+          /tmp/patchwitness-tasktopr/bin/python scripts/tasktopr_safe_delivery_smoke.py "$TASKTOPR_REVISION"
+
   docker:
     runs-on: ubuntu-latest
     steps:
