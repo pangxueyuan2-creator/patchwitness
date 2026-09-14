@@ -2,7 +2,7 @@
 
 PatchWitness can consume a sanitized TaskToPR exact-head execution handoff without letting the producer define PatchWitness's candidate manifest or reviewer policy.
 
-The installed command is:
+The installed composition command is:
 
 ```console
 patchwitness-safe-delivery tasktopr \
@@ -25,13 +25,28 @@ After subject derivation, PatchWitness validates the handoff envelope, its canon
 
 ## Decision semantics
 
-This command intentionally creates a **PR-stage** Safe Delivery report with only the `execution` component populated. A valid TaskToPR handoff can make that one component `PASS`; it cannot invent API, dependency, privacy, artifact, policy, CI, or review evidence. Missing independent components therefore remain `UNKNOWN` or `REVIEW_REQUIRED`, and the overall passport normally remains `UNKNOWN` until separate producers supply those facts.
+The TaskToPR command intentionally creates a **PR-stage** Safe Delivery report with only the `execution` component populated. A valid TaskToPR handoff can make that one component `PASS`; it cannot invent API, dependency, privacy, artifact, policy, CI, or review evidence. Missing independent components therefore remain `UNKNOWN` or `REVIEW_REQUIRED`, and the overall passport normally remains `UNKNOWN` until separate producers supply those facts.
 
 That behavior is deliberate: an execution receipt is not merge authorization, a signature, producer authentication, or proof that the whole change is safe.
 
-## Output safety
+## Independent offline verification
 
-The output is re-verified before writing. PatchWitness writes through a temporary file, flushes it with `fsync`, and atomically replaces the destination. Existing output is refused unless `--force` is explicit, and symlink output targets are rejected. Candidate cleanliness and exact `HEAD` are checked again after composition so a concurrent candidate change fails closed rather than producing apparently fresh evidence for stale bytes.
+A saved Safe Delivery passport can be verified without the source repository, producer, network, or working tree:
+
+```console
+patchwitness-safe-delivery verify ./safe-delivery.json
+patchwitness-safe-delivery --json verify ./safe-delivery.json
+```
+
+Verification uses a bounded regular-file reader, rejects symlinks, duplicate JSON keys, invalid UTF-8/JSON, read races, unsupported schema/fields, inconsistent decision semantics, and receipt-digest tampering. A zero exit status means the envelope, Safe Delivery semantics, and content-addressed receipt are internally valid. It does **not** mean `payload.decision` is `PASS` and it does not authenticate a producer. The JSON result therefore reports the verified overall/component decisions separately from `ok: true`.
+
+The external-consumer regression builds a wheel, installs it into a clean virtual environment outside the source checkout, creates synthetic pinned Safe Delivery evidence using only that installed package, and invokes the installed `patchwitness-safe-delivery verify` command. It covers clean `PASS`, blocking `FAIL`, incomplete `REVIEW_REQUIRED`, and a tampered receipt that must fail closed. This is intended to exercise the same package/user boundary as a real downstream consumer rather than relying on source-tree imports.
+
+## Output and publication safety
+
+Composition output is re-verified before writing. PatchWitness writes through a temporary file, flushes it with `fsync`, and atomically replaces the destination. Existing output is refused unless `--force` is explicit, and symlink output targets are rejected. Candidate cleanliness and exact `HEAD` are checked again after composition so a concurrent candidate change fails closed rather than producing apparently fresh evidence for stale bytes.
+
+The Safe Delivery passport is designed to carry bounded identifiers, digests, decisions, rule IDs, and numeric metrics. It must not be treated as a safe container for raw prompts, command output, credentials, secrets, or private producer payloads. Repository identity may still be environment-specific metadata, so publication policy should review whether even hashed/local identities are appropriate for the intended audience.
 
 Use `--json` before the `tasktopr` subcommand for machine-readable status:
 
@@ -39,4 +54,4 @@ Use `--json` before the `tasktopr` subcommand for machine-readable status:
 patchwitness-safe-delivery --json tasktopr ...
 ```
 
-A successful command exit means the passport was composed and verified structurally. It does **not** mean the overall Safe Delivery decision is `PASS`; consumers must inspect `payload.decision` and the individual component decisions.
+A successful composition command exit means the passport was composed and verified structurally. It does **not** mean the overall Safe Delivery decision is `PASS`; consumers must inspect `payload.decision` and the individual component decisions.
