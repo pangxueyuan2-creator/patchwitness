@@ -47,6 +47,7 @@ patchwitness-safe-delivery = "patchwitness.passport:main"
 [project.optional-dependencies]
 dev = [
   "build>=1.2.2",
+  "hatchling>=1.27",
   "mypy>=1.15",
   "pytest>=8.3",
   "pytest-cov>=6.0",
