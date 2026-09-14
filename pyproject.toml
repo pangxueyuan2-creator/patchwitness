@@ -40,6 +40,7 @@ Changelog = "https://github.com/pangxueyuan2-creator/patchwitness/blob/main/CHAN
 
 [project.scripts]
 patchwitness = "patchwitness.cli:main"
+patchwitness-safe-delivery = "patchwitness.passport:main"
 
 [project.entry-points."patchwitness.analyzers"]
 
