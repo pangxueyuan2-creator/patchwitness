@@ -118,7 +118,7 @@ def test_v2_off_mode_never_claims_human_approval() -> None:
     [
         ("decision", "reject", "completed human decision"),
         ("decision", "pending", "completed human decision"),
-        ("record_sha256", None, "SHA-256"),
+        ("record_sha256", None, "must be a string"),
         ("edited", True, "edit identity"),
     ],
 )
