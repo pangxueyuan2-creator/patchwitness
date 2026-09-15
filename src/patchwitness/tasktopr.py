@@ -109,7 +109,7 @@ def _plan_approval(value: Any) -> tuple[bool, bool]:
     original = _digest(approval["original_plan_sha256"], "plan_approval.original_plan_sha256")
     final = _digest(approval["final_plan_sha256"], "plan_approval.final_plan_sha256")
     _digest(approval["record_sha256"], "plan_approval.record_sha256")
-    if edited is not (original != final):
+    if edited != (original != final):
         raise TaskToPREvidenceError("TaskToPR plan approval edit identity is inconsistent")
     if decision == "approve" and edited:
         raise TaskToPREvidenceError("TaskToPR approve decision cannot replace the plan")
