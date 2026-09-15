@@ -23,6 +23,26 @@ TaskToPR's `change_scope_sha256` and execution-policy digest remain producer pro
 
 After subject derivation, PatchWitness validates the handoff envelope, its canonical receipt digest, schema, producer revision, repository/base/head identity, exact-head test result, protected-path decision, and resource budgets. The producer revision must exactly match `--tasktopr-revision`.
 
+## Reviewer-enforced plan approval
+
+TaskToPR execution handoff v2 can carry bounded proof that its pre-mutation plan passed a human `approve` or `edit` decision. PatchWitness validates that provenance and records it on the execution component, but the default composition mode remains backward compatible: it does not require a human plan decision.
+
+A reviewer can make that proof mandatory at the installed consumer boundary:
+
+```console
+patchwitness-safe-delivery tasktopr \
+  --handoff ./tasktopr-execution.json \
+  --tasktopr-revision <reviewed-40-char-tasktopr-commit> \
+  --base <reviewed-base-commit> \
+  --policy-ref <reviewed-policy-commit> \
+  --require-plan-approval \
+  --output ./safe-delivery.json
+```
+
+With `--require-plan-approval`, PatchWitness composes and verifies the exact-subject report in memory, then refuses to publish the output unless the execution component proves a validated TaskToPR v2 `prompt + approve|edit` decision. Legacy v1 handoffs and v2 `off/not_required` handoffs fail closed because they cannot prove that policy requirement. Rejection occurs before the destination passport is written.
+
+This switch does **not** turn approval into merge authorization. It only enforces one reviewer-selected precondition on TaskToPR execution provenance; hosted CI, code review, independent evidence producers, branch protection, and release policy remain separate facts.
+
 ## Decision semantics
 
 The TaskToPR command intentionally creates a **PR-stage** Safe Delivery report with only the `execution` component populated. A valid TaskToPR handoff can make that one component `PASS`; it cannot invent API, dependency, privacy, artifact, policy, CI, or review evidence. Missing independent components therefore remain `UNKNOWN` or `REVIEW_REQUIRED`, and the overall passport normally remains `UNKNOWN` until separate producers supply those facts.
