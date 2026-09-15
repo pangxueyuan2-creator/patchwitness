@@ -107,7 +107,10 @@ def test_invalid_reviewer_version_pin_is_rejected(value: str) -> None:
 
 
 def test_unknown_reviewer_schema_pin_is_rejected() -> None:
-    with pytest.raises(TaskToPREvidenceError, match="required TaskToPR handoff schema is unsupported"):
+    with pytest.raises(
+        TaskToPREvidenceError,
+        match="required TaskToPR handoff schema is unsupported",
+    ):
         adapt_tasktopr_execution(
             _handoff(),
             subject=SUBJECT,
