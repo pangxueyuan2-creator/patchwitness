@@ -22,6 +22,9 @@ from patchwitness.safe_delivery import (
 
 TASKTOPR_HANDOFF_SCHEMA_V1 = "tasktopr.dev/safe-delivery/execution/v1"
 TASKTOPR_HANDOFF_SCHEMA_V2 = "tasktopr.dev/safe-delivery/execution/v2"
+SUPPORTED_TASKTOPR_HANDOFF_SCHEMAS = frozenset(
+    {TASKTOPR_HANDOFF_SCHEMA_V1, TASKTOPR_HANDOFF_SCHEMA_V2}
+)
 # Backward-compatible alias for callers that imported the original schema constant.
 TASKTOPR_HANDOFF_SCHEMA = TASKTOPR_HANDOFF_SCHEMA_V1
 TASKTOPR_TRUST_BOUNDARY = (
@@ -151,17 +154,24 @@ def adapt_tasktopr_execution(
     *,
     subject: ChangeSubject,
     trusted_revision: str,
+    trusted_version: str | None = None,
+    required_schema: str | None = None,
 ) -> ComponentEvidence:
     """Convert a validated TaskToPR handoff into PatchWitness execution evidence.
 
     Only repository/base/head identity is allowed to bind TaskToPR to the supplied
     PatchWitness subject. TaskToPR's change-scope digest and execution-policy digest
     are producer provenance; they never replace PatchWitness's independently derived
-    manifest identity or reviewer-owned policy identity.
+    manifest identity or reviewer-owned policy identity. Optional version/schema pins
+    are reviewer-controlled compatibility constraints and fail closed on mismatch.
     """
     subject.validate()
     if not _SHA.fullmatch(trusted_revision):
         raise TaskToPREvidenceError("trusted TaskToPR revision must be an exact Git SHA-1")
+    if trusted_version is not None and not _VERSION.fullmatch(trusted_version):
+        raise TaskToPREvidenceError("trusted TaskToPR version is invalid")
+    if required_schema is not None and required_schema not in SUPPORTED_TASKTOPR_HANDOFF_SCHEMAS:
+        raise TaskToPREvidenceError("required TaskToPR handoff schema is unsupported")
     if set(report) != {"payload", "receipt_sha256"}:
         raise TaskToPREvidenceError("TaskToPR handoff envelope has unexpected fields")
     payload = _object(report["payload"], "TaskToPR handoff payload")
@@ -193,6 +203,8 @@ def adapt_tasktopr_execution(
         approval_required, approval_satisfied = _plan_approval(payload["plan_approval"])
     else:
         raise TaskToPREvidenceError("unsupported TaskToPR execution handoff schema")
+    if required_schema is not None and schema != required_schema:
+        raise TaskToPREvidenceError("TaskToPR handoff schema does not match reviewer pin")
     if payload["component"] != "execution":
         raise TaskToPREvidenceError("unsupported TaskToPR execution handoff schema")
     if payload["trust_boundary"] != TASKTOPR_TRUST_BOUNDARY:
@@ -206,6 +218,8 @@ def adapt_tasktopr_execution(
     version = _string(producer["version"], "producer.version")
     if not _VERSION.fullmatch(version):
         raise TaskToPREvidenceError("TaskToPR producer version is invalid")
+    if trusted_version is not None and version != trusted_version:
+        raise TaskToPREvidenceError("TaskToPR producer version does not match reviewer pin")
     producer_revision = _revision(producer["git_revision"], "producer.git_revision")
     if producer_revision != trusted_revision:
         raise TaskToPREvidenceError("TaskToPR producer revision does not match reviewer pin")
@@ -281,6 +295,12 @@ def adapt_tasktopr_execution(
         metrics["plan_approval_satisfied"] = int(approval_satisfied)
         if approval_satisfied:
             rule_ids.append("TASKTOPR_PLAN_APPROVED")
+    if trusted_version is not None:
+        rule_ids.append("TASKTOPR_PRODUCER_VERSION_PINNED")
+        metrics["producer_version_pin_satisfied"] = 1
+    if required_schema is not None:
+        rule_ids.append("TASKTOPR_HANDOFF_SCHEMA_PINNED")
+        metrics["handoff_schema_pin_satisfied"] = 1
 
     return ComponentEvidence(
         component="execution",
