@@ -35,7 +35,12 @@ from patchwitness.safe_delivery import (
     content_digest,
     verify_safe_delivery,
 )
-from patchwitness.tasktopr import adapt_tasktopr_execution, load_tasktopr_handoff
+from patchwitness.tasktopr import (
+    TASKTOPR_HANDOFF_SCHEMA_V1,
+    TASKTOPR_HANDOFF_SCHEMA_V2,
+    adapt_tasktopr_execution,
+    load_tasktopr_handoff,
+)
 from patchwitness.tasktopr_policy import require_tasktopr_plan_approval
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
@@ -202,6 +207,8 @@ def build_tasktopr_passport(
     *,
     handoff_path: Path,
     tasktopr_revision: str,
+    tasktopr_version: str | None = None,
+    tasktopr_schema: str | None = None,
     base_sha: str,
     head: str = "HEAD",
     policy_ref: str,
@@ -221,6 +228,8 @@ def build_tasktopr_passport(
         load_tasktopr_handoff(handoff_path),
         subject=subject,
         trusted_revision=tasktopr_revision,
+        trusted_version=tasktopr_version,
+        required_schema=tasktopr_schema,
     )
     report = compose_safe_delivery(
         subject,
@@ -338,6 +347,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     tasktopr.add_argument("--handoff", required=True, type=Path)
     tasktopr.add_argument("--tasktopr-revision", required=True)
+    tasktopr.add_argument(
+        "--tasktopr-version",
+        help="reviewer-pinned exact TaskToPR producer version; fail closed on mismatch",
+    )
+    tasktopr.add_argument(
+        "--tasktopr-schema",
+        choices=(TASKTOPR_HANDOFF_SCHEMA_V1, TASKTOPR_HANDOFF_SCHEMA_V2),
+        help="reviewer-pinned exact TaskToPR handoff schema; fail closed on mismatch",
+    )
     tasktopr.add_argument("--base", required=True, dest="base_sha")
     tasktopr.add_argument("--head", default="HEAD")
     tasktopr.add_argument("--policy-ref", required=True)
@@ -400,6 +418,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             Path.cwd(),
             handoff_path=args.handoff,
             tasktopr_revision=args.tasktopr_revision,
+            tasktopr_version=args.tasktopr_version,
+            tasktopr_schema=args.tasktopr_schema,
             base_sha=args.base_sha,
             head=args.head,
             policy_ref=args.policy_ref,
