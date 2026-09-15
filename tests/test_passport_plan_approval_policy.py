@@ -6,13 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from patchwitness.passport_policy import main, require_tasktopr_plan_approval
+from patchwitness.passport import main
 from patchwitness.safe_delivery import content_digest
 from patchwitness.tasktopr import (
     TASKTOPR_HANDOFF_SCHEMA_V1,
     TASKTOPR_HANDOFF_SCHEMA_V2,
     TASKTOPR_TRUST_BOUNDARY,
 )
+from patchwitness.tasktopr_policy import require_tasktopr_plan_approval
 
 TASKTOPR_REVISION = "2" * 40
 
@@ -160,13 +161,14 @@ def test_required_approval_rejects_legacy_and_v2_off_without_writing(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     root, base, head = _repository(tmp_path)
-    for name, report in (
+    cases = (
         ("legacy", _handoff(root, base, head, schema=TASKTOPR_HANDOFF_SCHEMA_V1)),
         (
             "off",
             _handoff(root, base, head, schema=TASKTOPR_HANDOFF_SCHEMA_V2, approval="off"),
         ),
-    ):
+    )
+    for name, report in cases:
         handoff = tmp_path / f"{name}.json"
         output = tmp_path / f"{name}-passport.json"
         _write(handoff, report)

@@ -36,6 +36,7 @@ from patchwitness.safe_delivery import (
     verify_safe_delivery,
 )
 from patchwitness.tasktopr import adapt_tasktopr_execution, load_tasktopr_handoff
+from patchwitness.tasktopr_policy import require_tasktopr_plan_approval
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 MAX_POLICY_BYTES = 1024 * 1024
@@ -343,6 +344,11 @@ def build_parser() -> argparse.ArgumentParser:
     tasktopr.add_argument("--policy-path", default=".patchwitness.toml")
     tasktopr.add_argument("--output", required=True, type=Path)
     tasktopr.add_argument("--force", action="store_true")
+    tasktopr.add_argument(
+        "--require-plan-approval",
+        action="store_true",
+        help="require verified TaskToPR v2 prompt-mode human approve/edit provenance",
+    )
     verify = commands.add_parser(
         "verify",
         help="verify a saved Safe Delivery passport offline without trusting its decision",
@@ -399,6 +405,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             policy_ref=args.policy_ref,
             policy_path=args.policy_path,
         )
+        if args.require_plan_approval:
+            require_tasktopr_plan_approval(report)
         output = write_passport(args.output, report, force=bool(args.force))
     except (OSError, PassportError, ValueError) as exc:
         if args.json:
