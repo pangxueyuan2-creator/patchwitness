@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import math
 import os
 import platform
+import stat
 import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -24,6 +26,7 @@ from patchwitness.policy import evaluate_policy
 from patchwitness.security import scan_changed_files
 
 SCHEMA_VERSION = "patchwitness.dev/evidence/v1"
+MAX_EVIDENCE_BYTES = 16 * 1024 * 1024
 
 
 class EvidenceError(ValueError):
@@ -200,11 +203,74 @@ def verify_evidence(pack: EvidencePack | dict[str, Any]) -> EvidencePack:
     return evidence
 
 
+def _file_state(value: os.stat_result) -> tuple[int, int, int, int, int]:
+    # Windows path/descriptor ctime can report different creation/change times.
+    change_time = value.st_ctime_ns if os.name != "nt" else 0
+    return value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, change_time
+
+
+def _read_evidence(path: Path) -> bytes:
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        raise EvidenceError("evidence must be a regular non-symlink file")
+    if before.st_size > MAX_EVIDENCE_BYTES:
+        raise EvidenceError("evidence exceeds the byte limit")
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor = os.open(path, flags)
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode) or _file_state(before) != _file_state(opened):
+            raise EvidenceError("evidence changed before reading")
+        chunks: list[bytes] = []
+        size = 0
+        while size <= MAX_EVIDENCE_BYTES:
+            chunk = os.read(descriptor, min(64 * 1024, MAX_EVIDENCE_BYTES + 1 - size))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+        if size > MAX_EVIDENCE_BYTES:
+            raise EvidenceError("evidence exceeds the byte limit")
+        if (
+            _file_state(opened) != _file_state(os.fstat(descriptor))
+            or _file_state(opened) != _file_state(path.lstat())
+            or size != opened.st_size
+        ):
+            raise EvidenceError("evidence changed while reading")
+        return b"".join(chunks)
+    finally:
+        os.close(descriptor)
+
+
+def _unique_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise EvidenceError("evidence contains a duplicate JSON key")
+        result[key] = value
+    return result
+
+
+def _finite_number(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise EvidenceError("evidence contains a non-finite JSON number")
+    return number
+
+
 def load_evidence(path: Path) -> EvidencePack:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise EvidenceError(f"cannot load evidence {path}: {exc}") from exc
+        value = json.loads(
+            _read_evidence(path).decode("utf-8"),
+            object_pairs_hook=_unique_keys,
+            parse_constant=_finite_number,
+            parse_float=_finite_number,
+        )
+    except EvidenceError:
+        raise
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+        raise EvidenceError("cannot load evidence: unreadable or invalid UTF-8 JSON") from exc
     if not isinstance(value, dict):
         raise EvidenceError(f"invalid evidence {path}: root must be an object")
     try:

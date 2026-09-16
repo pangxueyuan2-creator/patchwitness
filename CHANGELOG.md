@@ -7,6 +7,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Bound evidence-file reads to 16 MiB, reject duplicate/non-finite JSON and non-regular files, and detect observed replacement or mutation during reading before offline verification.
 - Reject ambiguous index/working-tree content with PW033 before checks, preventing a passing live or clean-room test from being attached to a different staged change.
 - Recheck recorded source changes after clean-room checks and reject HEAD/branch movement while retaining the initially observed repository identity in evidence.
 - Preserved the advisory Copilot CLI PowerShell hook’s documented zero exit status when it is invoked by a strict PowerShell caller, while continuing to write its status to stderr.
