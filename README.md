@@ -101,6 +101,9 @@ patchwitness mcp --root .
 
 Exit codes: `0` pass, `1` gate failure, `2` usage/runtime error.
 
+Checks capture at most 1 MiB per output stream and fail on overflow or timeout.
+See [check execution limits](docs/check-execution.md) for diagnostics and cleanup boundaries.
+
 ## Related tools
 
 These answer different questions and do not depend on each other:

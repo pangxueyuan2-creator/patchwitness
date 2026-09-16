@@ -6,13 +6,13 @@ import hashlib
 import os
 import re
 import shutil
-import subprocess
 import sys
 import time
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from patchwitness.check_process import run_check_process
 from patchwitness.models import CheckResult, CheckSpec
 from patchwitness.redaction import excerpt, redact
 
@@ -56,9 +56,6 @@ def run_checks(
 
 def _run_one(root: Path, spec: CheckSpec, *, untrusted: bool = False) -> CheckResult:
     started = time.perf_counter()
-    timed_out = False
-    exit_code: int | None
-    output: str
     env = os.environ.copy()
     if untrusted:
         try:
@@ -79,35 +76,25 @@ def _run_one(root: Path, spec: CheckSpec, *, untrusted: bool = False) -> CheckRe
             if not existing_python_path
             else str(source_root) + os.pathsep + existing_python_path
         )
-    try:
-        result = subprocess.run(
-            command,
-            cwd=root,
-            shell=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=spec.timeout_seconds,
-            env=env,
-            check=False,
-        )
+    result = run_check_process(command, root=root, env=env, timeout=spec.timeout_seconds)
+    timed_out = result.timed_out
+    if result.failure is None:
         exit_code = result.returncode
-        output = result.stdout + result.stderr
-    except subprocess.TimeoutExpired as exc:
-        timed_out = True
-        exit_code = None
-        stdout = (
-            exc.stdout.decode("utf-8", errors="replace")
-            if isinstance(exc.stdout, bytes)
-            else exc.stdout
+        # Preserve v1's stdout-then-stderr ordering and UTF-8 replacement behavior.
+        output = "".join(
+            stream.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+            for stream in (result.stdout, result.stderr)
         )
-        stderr = (
-            exc.stderr.decode("utf-8", errors="replace")
-            if isinstance(exc.stderr, bytes)
-            else exc.stderr
-        )
-        output = (stdout or "") + (stderr or "")
+    else:
+        exit_code = None if timed_out else 125
+        messages = {
+            "timeout": "PatchWitness check exceeded its execution deadline.",
+            "output_limit": "PatchWitness check exceeded the 1048576-byte per-stream output limit.",
+            "invalid_limits": "PatchWitness check has invalid execution limits.",
+            "execution_failed": "PatchWitness check execution or pipe capture failed.",
+            "cleanup_failed": "PatchWitness could not confirm direct check process cleanup.",
+        }
+        output = messages[result.failure]
     duration_ms = max(0, round((time.perf_counter() - started) * 1_000))
     sanitized = redact(output)
     return CheckResult(
