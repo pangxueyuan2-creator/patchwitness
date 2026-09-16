@@ -15,6 +15,7 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Added
 
+- Added a portable release preflight for Windows and POSIX, with isolated wheel and source-distribution consumer checks for scoped changes, protected workflow rejection, and Passport integrity.
 - Added exact-subject Safe Delivery composition with pinned producer identities, strict decision/schema verification, SARIF and a content-addressed receipt.
 - Added bounded Git-object materialization and a local nine-component fixture demonstration; incomplete runtime, publication, CI and review evidence never becomes an automatic release approval.
 - Added a Windows-only regression test that runs the published PowerShell hook against a synthetic Git change and verifies the generated Change Passport.
