@@ -1,6 +1,6 @@
 # Project status
 
-**Current release:** v0.2.x public alpha  
+**Current source:** v0.3.0 public alpha ([published releases](https://github.com/pangxueyuan2-creator/patchwitness/releases))
 **Evidence schema:** v1  
 **Maintainer:** single primary maintainer  
 **Production use:** none claimed yet
@@ -13,6 +13,8 @@
 - Real test execution + clean-room worktrees
 - Basic dependency impact (Python / JS / TS)
 - JSON evidence, SARIF, SDK, MCP, GitHub Action
+- Bounded check output and strict offline evidence-file loading
+- Optional revision-pinned TaskToPR Safe Delivery evidence consumption
 
 ## Known limitations
 

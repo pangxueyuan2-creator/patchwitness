@@ -37,15 +37,15 @@ No package install needed. See the [demo README](demo/README.md) and the committ
 Structural scan only (no code execution):
 
 ```bash
-uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl" patchwitness scan --no-checks
+uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl" patchwitness scan --no-checks
 ```
 
 Or install once:
 
 ```bash
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl"
 # or
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.2.2/patchwitness-0.2.2-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl"
 ```
 
 Then inside any Git repo:
@@ -120,8 +120,11 @@ a content-addressed receipt. Its local nine-component fixture demo preserves
 
 ## Status
 
-Public alpha (v0.2.x). Evidence schema v1 is stable.  
+Public alpha (v0.3.x). Evidence schema v1 is stable.
 Single maintainer. No production claims.
+
+Upgrading from v0.2.2? Read the [v0.3.0 migration notes](docs/release-notes/v0.3.0.md),
+especially the new check-output and evidence-input limits.
 
 Limitations are listed in [PROJECT_STATUS.md](PROJECT_STATUS.md) and the [threat model](docs/threat-model.md). The important ones:
 
