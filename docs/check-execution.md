@@ -46,7 +46,9 @@ Integrity verification is not policy approval or an authenticity signature.
 ## Cleanup and limits
 
 On POSIX, checks start a new session. Failure cleanup kills the process group, even
-when the shell has exited, then waits up to two seconds for the direct process.
+when the shell has exited, then waits up to two seconds for the direct process. An exited shell is reaped
+before group signalling; a group-signal failure permits only one retry after direct
+child cleanup. Persistent group errors remain explicit cleanup failures.
 On Windows, cleanup attempts the system `taskkill /T /F` with a two-second deadline,
 then kills/waits for the direct process with a separate two-second deadline.
 Windows pipe polling supports Python 3.11 without blocking reader threads.

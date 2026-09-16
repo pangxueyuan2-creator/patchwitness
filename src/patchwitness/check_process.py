@@ -92,16 +92,28 @@ def _capture(
             time.sleep(min(0.01, max(0.0, deadline - time.monotonic())))
 
 
+def _kill_group(pid: int) -> bool:
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        # No group remains. In particular, a reaped final member is not a failure.
+        return True
+    except OSError:
+        return False
+    return True
+
+
 def _stop(process: subprocess.Popen[bytes]) -> bool:
+    group_ok = True
     if sys.platform != "win32":
-        # The shell starts a new session. Kill its group even after shell exit,
-        # because a descendant may still hold either captured pipe open.
-        with suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
+        # Reap an already exited shell before signalling its group. Darwin can
+        # reject signals to a group whose only remaining member is a zombie.
+        process.poll()
+        group_ok = _kill_group(process.pid)
     elif process.poll() is None:
         # Best effort only: Windows cannot enumerate children of an exited shell
         # this way. Closing our read handles still bounds capture and return time.
-        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        system_root = Path(os.environ.get("SYSTEMROOT", r"C:\Windows"))
         taskkill = system_root / "System32" / "taskkill.exe"
         if taskkill.is_absolute():
             with suppress(OSError, subprocess.TimeoutExpired):
@@ -110,13 +122,22 @@ def _stop(process: subprocess.Popen[bytes]) -> bool:
                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL, timeout=_CLEANUP_SECONDS, check=False,
                 )
-    if process.poll() is None:
-        process.kill()
+    direct_ok = True
+    try:
+        if process.poll() is None:
+            process.kill()
+    except OSError:
+        direct_ok = False
+    # A failed group signal must never prevent the direct child from being reaped.
     try:
         process.wait(timeout=_CLEANUP_SECONDS)
-    except subprocess.TimeoutExpired:
+    except (OSError, subprocess.TimeoutExpired):
         return False
-    return True
+    if sys.platform != "win32" and not group_ok:
+        # One bounded retry after reaping handles an exit racing the first poll.
+        # A surviving group that still refuses the signal remains cleanup_failed.
+        group_ok = _kill_group(process.pid)
+    return direct_ok and group_ok
 
 
 def run_check_process(

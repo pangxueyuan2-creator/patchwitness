@@ -190,7 +190,10 @@ def test_pipe_read_error_fails_closed_and_reaps_shell(tmp_path: Path, monkeypatc
     result = run(tmp_path, "import time\ntime.sleep(5)")
     assert result.failure == "execution_failed"
     assert "synthetic-private" not in repr(result)
-    assert len(processes) == 1 and processes[0].poll() is not None
+    # Windows also starts taskkill during cleanup; it is not a second check.
+    checks = [process for process in processes if isinstance(process.args, str)]
+    assert len(checks) == 1
+    assert processes and all(process.poll() is not None for process in processes)
 
 
 def test_required_output_overflow_produces_a_failed_verifiable_passport(tmp_path: Path) -> None:
@@ -244,3 +247,55 @@ def test_completed_process_still_requires_both_pipe_eofs(tmp_path: Path) -> None
     finally:
         for fd in fds:
             os.close(fd)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group cleanup contract")
+def test_group_signal_failure_still_reaps_child_and_retries_once(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def disappearing_group(pid, signum):
+        calls.append((pid, signum))
+        if len(calls) == 1:
+            raise PermissionError("synthetic-private-zombie-race")
+        raise ProcessLookupError("synthetic-private-group-gone")
+
+    with subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(5)"], cwd=tmp_path,
+        start_new_session=True,
+    ) as process:
+        monkeypatch.setattr(check_process.os, "killpg", disappearing_group)
+        assert check_process._stop(process)
+        assert process.poll() is not None
+        assert calls == [(process.pid, check_process.signal.SIGKILL)] * 2
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group cleanup contract")
+def test_persistent_group_signal_failure_is_not_hidden(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def denied(pid, signum):
+        calls.append((pid, signum))
+        raise PermissionError("synthetic-private-denied")
+
+    with subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(5)"], cwd=tmp_path,
+        start_new_session=True,
+    ) as process:
+        monkeypatch.setattr(check_process.os, "killpg", denied)
+        assert not check_process._stop(process)
+        assert process.poll() is not None
+        assert len(calls) == 2
+
+
+def test_unconfirmed_cleanup_is_reported_as_failure(tmp_path: Path, monkeypatch):
+    original = check_process._stop
+
+    def unconfirmed(process):
+        original(process)
+        return False
+
+    monkeypatch.setattr(check_process, "_stop", unconfirmed)
+    result = run(tmp_path, "import os\nos.write(1, b'x' * 4097)")
+    assert result.failure == "cleanup_failed"
+    assert result.returncode is None
+    assert result.stdout == result.stderr == b""
