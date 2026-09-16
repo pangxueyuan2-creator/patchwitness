@@ -29,7 +29,15 @@ Before opening a pull request, run the checks that match your change. Every code
 make release-check
 ```
 
-`release-check` runs coverage-enforced tests, Ruff, mypy, the real Demo, the five-scenario change-risk benchmark, build, Twine metadata validation and a clean-wheel installation. It is not required for a spelling-only correction, but it is required before proposing a release-path or packaging change.
+On Windows, or without Make, run the same preflight directly:
+
+```bash
+python scripts/release_check.py
+```
+
+`release-check` runs coverage-enforced tests, Ruff, mypy, the real Demo, the five-scenario change-risk benchmark, build, Twine metadata validation, and separate clean installations of both the wheel and source distribution. Each installed artifact must accept a scoped synthetic change, reject a protected workflow change with `PW003`, verify its Passport, and reject a tampered Passport. Consumer checks run outside the checkout with Python isolated mode; all build outputs and consumer environments use a fresh temporary directory. The benchmark does not rewrite its committed result file. Nothing is published or tagged.
+
+The `.[dev]` environment and Git must be available; source-distribution installation may download build dependencies. `python scripts/release_check.py --package-only` reruns just artifact validation and explicitly does **not** certify source tests, lint, types or demo checks. Full preflight is not required for a spelling-only correction, but is required before proposing a release-path or packaging change.
 
 ## Exercise an integration fixture
 
@@ -75,4 +83,4 @@ patchwitness gate --base origin/main --policy-ref origin/main --clean-room
 
 A failure caused by a protected policy or workflow change is an important review signal, not a reason to weaken controls. Explain the intentional control-plane change and let maintainers review it separately.
 
-By contributing, you agree that your work is licensed under Apache-2.0. Review, triage, releases and security response follow the documented [maintainer workflow](MAINTAINER_WORKFLOW.md). Most organization- or language-specific analysis should be an entry-point plugin rather than a core dependency; see [Plugin development](docs/plugin-development.md).
+By contributing, you agree that your work is licensed under Apache-2.0. Review and releases follow the validation and safety boundaries above; security reports follow [SECURITY.md](SECURITY.md). Most organization- or language-specific analysis should be an entry-point plugin rather than a core dependency; see [Plugin development](docs/plugin-development.md).
