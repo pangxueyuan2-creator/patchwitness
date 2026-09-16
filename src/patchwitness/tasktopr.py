@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import json
 import re
-import stat
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from patchwitness.file_input import FileInputError, read_regular_file
 from patchwitness.safe_delivery import (
     ChangeSubject,
     ComponentEvidence,
@@ -122,29 +122,14 @@ def _plan_approval(value: Any) -> tuple[bool, bool]:
 def load_tasktopr_handoff(path: Path) -> dict[str, Any]:
     """Load one bounded regular handoff file and reject duplicate keys or read races."""
     try:
-        before = path.lstat()
+        data = read_regular_file(path, max_bytes=MAX_HANDOFF_BYTES, label="TaskToPR handoff")
+    except FileInputError as exc:
+        raise TaskToPREvidenceError(str(exc)) from exc
     except OSError as exc:
-        raise TaskToPREvidenceError(f"unable to stat TaskToPR handoff: {exc}") from exc
-    if path.is_symlink() or not stat.S_ISREG(before.st_mode):
-        raise TaskToPREvidenceError("TaskToPR handoff must be a regular non-symlink file")
-    if before.st_size > MAX_HANDOFF_BYTES:
-        raise TaskToPREvidenceError("TaskToPR handoff exceeds the byte budget")
-    try:
-        data = path.read_bytes()
-        after = path.stat()
-    except OSError as exc:
-        raise TaskToPREvidenceError(f"unable to read TaskToPR handoff: {exc}") from exc
-    if len(data) > MAX_HANDOFF_BYTES:
-        raise TaskToPREvidenceError("TaskToPR handoff exceeds the byte budget")
-    if path.is_symlink() or (before.st_size, before.st_mtime_ns, before.st_mode) != (
-        after.st_size,
-        after.st_mtime_ns,
-        after.st_mode,
-    ):
-        raise TaskToPREvidenceError("TaskToPR handoff changed while it was being read")
+        raise TaskToPREvidenceError("unable to read TaskToPR handoff") from exc
     try:
         value = json.loads(data.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise TaskToPREvidenceError("TaskToPR handoff is not valid UTF-8 JSON") from exc
     return _object(value, "TaskToPR handoff")
 

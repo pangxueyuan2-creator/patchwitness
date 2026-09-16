@@ -64,6 +64,13 @@ The external-consumer regression builds a wheel, installs it into a clean virtua
 
 ## Output and publication safety
 
+Safe Delivery passport inputs have a 2 MiB byte budget; TaskToPR handoff inputs
+have a 512 KiB budget. Both use the shared descriptor reader: at most the budget
+plus one overflow byte is read, even if the file grows after the initial stat.
+Observed identity/size/mtime changes are rejected. These are best-effort race
+checks, not atomic snapshots or protection against a hostile filesystem. Ordinary
+Evidence v1 files read by `patchwitness verify` have a separate 16 MiB budget.
+
 Composition output is re-verified before writing. PatchWitness writes through a temporary file, flushes it with `fsync`, and atomically replaces the destination. Existing output is refused unless `--force` is explicit, and symlink output targets are rejected. Candidate cleanliness and exact `HEAD` are checked again after composition so a concurrent candidate change fails closed rather than producing apparently fresh evidence for stale bytes.
 
 The Safe Delivery passport is designed to carry bounded identifiers, digests, decisions, rule IDs, and numeric metrics. It must not be treated as a safe container for raw prompts, command output, credentials, secrets, or private producer payloads. Repository identity may still be environment-specific metadata, so publication policy should review whether even hashed/local identities are appropriate for the intended audience.

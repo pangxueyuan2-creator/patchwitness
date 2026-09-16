@@ -21,6 +21,7 @@ from collections.abc import Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
+from patchwitness.file_input import FileInputError, read_regular_file
 from patchwitness.git import (
     find_root,
     head_revision,
@@ -247,39 +248,16 @@ def build_tasktopr_passport(
 def load_passport(path: Path) -> dict[str, Any]:
     """Load and semantically verify one bounded, regular Safe Delivery JSON file."""
     try:
-        before = path.lstat()
+        data = read_regular_file(
+            path, max_bytes=MAX_PASSPORT_BYTES, label="Safe Delivery passport"
+        )
+    except FileInputError as exc:
+        raise PassportError(str(exc)) from exc
     except OSError as exc:
-        raise PassportError(f"unable to stat Safe Delivery passport: {exc}") from exc
-    if path.is_symlink() or not stat.S_ISREG(before.st_mode):
-        raise PassportError("Safe Delivery passport must be a regular non-symlink file")
-    if before.st_size > MAX_PASSPORT_BYTES:
-        raise PassportError("Safe Delivery passport exceeds the byte budget")
-    try:
-        data = path.read_bytes()
-        after = path.stat()
-    except OSError as exc:
-        raise PassportError(f"unable to read Safe Delivery passport: {exc}") from exc
-    if len(data) > MAX_PASSPORT_BYTES:
-        raise PassportError("Safe Delivery passport exceeds the byte budget")
-    before_identity = (
-        before.st_dev,
-        before.st_ino,
-        before.st_size,
-        before.st_mtime_ns,
-        before.st_mode,
-    )
-    after_identity = (
-        after.st_dev,
-        after.st_ino,
-        after.st_size,
-        after.st_mtime_ns,
-        after.st_mode,
-    )
-    if path.is_symlink() or before_identity != after_identity:
-        raise PassportError("Safe Delivery passport changed while it was being read")
+        raise PassportError("unable to read Safe Delivery passport") from exc
     try:
         value = json.loads(data.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise PassportError("Safe Delivery passport is not valid UTF-8 JSON") from exc
     report = _json_object(value, "Safe Delivery passport")
     verify_safe_delivery(report)

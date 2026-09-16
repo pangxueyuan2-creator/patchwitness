@@ -10,10 +10,11 @@ uses semantic versioning once the v1 compatibility contract is reached.
 ### Changed
 
 - Made check execution non-interactive and bounded stdout/stderr capture to 1 MiB per stream. Output overflow, incomplete pipe capture and deadline failures cannot produce a passing check or a truncated success hash.
-- Required regular UTF-8 JSON evidence files within 16 MiB; see [upgrade notes](docs/release-notes/v0.3.0.md) for compatibility and cleanup boundaries.
+- Required regular UTF-8 JSON Evidence v1 files within 16 MiB; see [upgrade notes](docs/release-notes/v0.3.0.md) for compatibility and cleanup boundaries.
 
 ### Fixed
 
+- Enforced Safe Delivery and TaskToPR byte budgets during reads, including concurrent file growth, and rejected observed handoff identity replacement even when size and mtime remain unchanged.
 - Bound evidence-file reads to 16 MiB, reject duplicate/non-finite JSON and non-regular files, and detect observed replacement or mutation during reading before offline verification.
 - Reject ambiguous index/working-tree content with PW033 before checks, preventing a passing live or clean-room test from being attached to a different staged change.
 - Recheck recorded source changes after clean-room checks and reject HEAD/branch movement while retaining the initially observed repository identity in evidence.
