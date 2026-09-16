@@ -93,6 +93,9 @@ def _capture(
 
 
 def _kill_group(pid: int) -> bool:
+    if sys.platform == "win32":
+        # The POSIX-only helper must not resolve unavailable Windows APIs.
+        return False
     try:
         os.killpg(pid, signal.SIGKILL)
     except ProcessLookupError:
@@ -168,7 +171,7 @@ def run_check_process(
                 read_fd, write_fd = os.pipe()
                 readers.callback(os.close, read_fd)
                 writers.callback(os.close, write_fd)
-                if os.name != "nt":
+                if sys.platform != "win32":
                     os.set_blocking(read_fd, False)
                 fds.append(read_fd)
                 outputs.append(write_fd)
