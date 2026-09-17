@@ -8,6 +8,7 @@ import json
 import math
 import os
 import platform
+import subprocess
 import tempfile
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -88,12 +89,14 @@ def capture_evidence(
     )
     if execute_checks:
         current_changes = git.collect_changes(repository, base_revision)
-        for drifted in _drifted_paths(changes, current_changes):
+        for drifted in _drifted_paths(
+            changes, current_changes, tracked_paths=_tracked_paths(repository)
+        ):
             findings += (
                 Finding(
                     "PW032",
                     Severity.ERROR,
-                    "recorded change moved while checks were running; refusing stale evidence",
+                    "change scope or content moved during checks; refusing stale evidence",
                     drifted,
                 ),
             )
@@ -162,14 +165,18 @@ def capture_evidence(
 
 
 def _drifted_paths(
-    recorded: tuple[FileChange, ...], current: tuple[FileChange, ...]
+    recorded: tuple[FileChange, ...],
+    current: tuple[FileChange, ...],
+    *,
+    tracked_paths: frozenset[str],
 ) -> tuple[str, ...]:
-    """Return recorded paths whose commit-relevant state moved during verification.
+    """Find recorded content drift and newly changed tracked/index paths.
 
-    Checks commonly create new untracked build/test artifacts (for example
-    ``__pycache__``) that were never part of the captured change. Those do not
-    make the already-recorded evidence stale. A recorded path disappearing,
-    changing content/status, or changing rename provenance does.
+    Newly generated untracked artifacts remain outside the recorded scope.
+    FileChange uses "A" for both untracked and staged additions, so status
+    alone cannot grant that exception: index membership must be checked.
+    Deletions and renames also expand scope even if their old paths are no
+    longer in the index. Previously recorded paths never get the exception.
     """
 
     def fingerprint(change: FileChange) -> tuple[str, str | None, str | None, str | None]:
@@ -182,13 +189,38 @@ def _drifted_paths(
 
     recorded_by_path = {change.path: fingerprint(change) for change in recorded}
     current_by_path = {change.path: fingerprint(change) for change in current}
-    return tuple(
-        sorted(
-            path
-            for path, recorded_fingerprint in recorded_by_path.items()
-            if current_by_path.get(path) != recorded_fingerprint
-        )
+    drifted = {
+        path
+        for path, recorded_fingerprint in recorded_by_path.items()
+        if current_by_path.get(path) != recorded_fingerprint
+    }
+    drifted.update(
+        change.path
+        for change in current
+        if change.path not in recorded_by_path
+        and (change.status != "A" or change.path in tracked_paths)
     )
+    return tuple(sorted(drifted))
+
+
+def _tracked_paths(root: Path) -> frozenset[str]:
+    """Read index membership without treating Git failure as an untracked path."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--cached", "-z"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise git.GitError("cannot enumerate tracked paths after checks") from exc
+    if result.returncode != 0 or (result.stdout and not result.stdout.endswith("\0")):
+        raise git.GitError("cannot enumerate tracked paths after checks")
+    # Match the Git adapter's existing path representation without whitespace stripping.
+    return frozenset(path.replace("\\", "/") for path in result.stdout.split("\0") if path)
 
 
 def verify_evidence(pack: EvidencePack | dict[str, Any]) -> EvidencePack:
