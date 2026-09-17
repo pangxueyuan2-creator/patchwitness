@@ -242,7 +242,7 @@ def test_index_enumeration_failures_are_not_untracked_evidence(
         return outcome
 
     monkeypatch.setattr(evidence.subprocess, "run", result)
-    with pytest.raises(GitError, match="^cannot enumerate tracked paths after checks$"):
+    with pytest.raises(GitError, match=r"^cannot enumerate tracked paths after checks$"):
         evidence._tracked_paths(tmp_path)
 
 
