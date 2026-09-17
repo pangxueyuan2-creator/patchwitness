@@ -7,6 +7,7 @@ import re
 import tomllib
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from patchwitness.detection import detect_project
 from patchwitness.models import Contract
@@ -53,11 +54,63 @@ def load_contract(path: Path) -> Contract:
 def load_contract_bytes(raw: bytes, *, source: str = "<memory>") -> Contract:
     try:
         value = tomllib.loads(raw.decode("utf-8"))
+        _validate_raw_contract(value)
         contract = Contract.from_dict(value)
     except (UnicodeDecodeError, tomllib.TOMLDecodeError, KeyError, TypeError, ValueError) as exc:
         raise ConfigError(f"invalid contract {source}: {exc}") from exc
     _validate(contract, source)
     return contract
+
+
+def _require_raw_type(
+    value: object, expected: type[object], field: str, description: str
+) -> None:
+    if type(value) is not expected:
+        # Field names are controlled by this validator; never echo rejected data.
+        raise ValueError(f"{field} must be {description}")
+
+
+def _validate_raw_contract(value: dict[str, Any]) -> None:
+    """Validate TOML types before the shared model's legacy coercions run."""
+    if "version" in value:
+        _require_raw_type(value["version"], int, "version", "the integer 1")
+        if value["version"] != 1:
+            raise ValueError("unsupported contract version; expected 1")
+    for field in ("id", "goal"):
+        if field in value:
+            _require_raw_type(value[field], str, field, "a string")
+
+    # Retain the legacy flat form and defaults when [policy] is absent.
+    policy = value.get("policy", value)
+    _require_raw_type(policy, dict, "policy", "a TOML table")
+    for field in ("allowed_paths", "denied_paths", "protected_paths"):
+        if field in policy:
+            patterns = policy[field]
+            _require_raw_type(patterns, list, field, "an array of strings")
+            if any(type(pattern) is not str for pattern in patterns):
+                raise ValueError(f"{field} must be an array of strings")
+    for field in ("allow_binary", "allow_dependency_changes", "require_tests"):
+        if field in policy:
+            _require_raw_type(policy[field], bool, field, "a boolean")
+    for field in ("max_files", "max_lines"):
+        if field in policy:
+            _require_raw_type(policy[field], int, field, "an integer")
+
+    checks = value.get("checks", [])
+    _require_raw_type(checks, list, "checks", "an array of TOML tables")
+    for index, check in enumerate(checks):
+        label = f"checks[{index}]"
+        _require_raw_type(check, dict, label, "a TOML table")
+        for field in ("id", "command"):
+            if field not in check:
+                raise ValueError(f"{label} requires {field}")
+            _require_raw_type(check[field], str, f"{label}.{field}", "a string")
+        if "required" in check:
+            _require_raw_type(check["required"], bool, f"{label}.required", "a boolean")
+        if "timeout_seconds" in check:
+            _require_raw_type(
+                check["timeout_seconds"], int, f"{label}.timeout_seconds", "an integer"
+            )
 
 
 def _validate(contract: Contract, source: str) -> None:
