@@ -36,6 +36,8 @@ def clean_room(root: Path, base_revision: str) -> Iterator[Path]:
         if add.returncode != 0:
             raise CleanRoomError(f"cannot create clean worktree: {add.stderr.strip()}")
         added = True
+        # Pair canonical diff prefixes with apply -p1; user display settings must
+        # never redirect a patch to a different path inside the verifier worktree.
         patch = subprocess.run(
             [
                 "git",
@@ -46,6 +48,8 @@ def clean_room(root: Path, base_revision: str) -> Iterator[Path]:
                 "--binary",
                 "--full-index",
                 "--no-ext-diff",
+                "--src-prefix=a/",
+                "--dst-prefix=b/",
                 base_revision,
                 "--",
             ],
@@ -57,7 +61,7 @@ def clean_room(root: Path, base_revision: str) -> Iterator[Path]:
             raise CleanRoomError(f"cannot capture repository patch: {detail}")
         if patch.stdout:
             applied = subprocess.run(
-                ["git", "-C", str(worktree), "apply", "--binary", "--whitespace=nowarn"],
+                ["git", "-C", str(worktree), "apply", "-p1", "--binary", "--whitespace=nowarn"],
                 input=patch.stdout,
                 capture_output=True,
                 check=False,
