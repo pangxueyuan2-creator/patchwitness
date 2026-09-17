@@ -23,6 +23,28 @@ pipes, including a descendant holding a pipe after the shell exits. OS process
 creation and individual platform system calls cannot be preempted by this loop.
 A startup/pipe failure, output overflow or timeout never returns a passing result.
 
+## Source scope after checks (unreleased fix)
+
+PW032 now also rejects newly changed tracked or index paths, not just content
+movement in paths recorded before checks. For example, a passing test that rewrites
+an initially unchanged workflow, deletes or renames a tracked file, or stages a new
+file cannot lend its result to a stale PASS. The gate exits 1, names the drifted
+path, and keeps the original snapshot and real check result in the failing Passport.
+A failure or timeout reading the final index is a runtime error (exit 2), not
+permission to treat unknown paths as harmless untracked files.
+
+New, unstaged build/test outputs remain outside the recorded scope for compatibility;
+they are **not certified by that Passport**, including their contents or policy status.
+Stage intended generated changes before rerunning the gate. Checks that intentionally
+rewrite tracked generated files should finish generation before capture, or use a
+clean-room verifier when those writes should not change the source checkout.
+
+This observes the source checkout and index after checks, including source movement
+during clean-room execution. Writes confined to the disposable verifier retain their
+existing behavior. Observations are not an atomic snapshot: transient changes restored
+before observation, subsequent edits, and detached processes remain outside this
+check's guarantee. Evidence-v1 fields and digest rules are unchanged.
+
 ## Evidence v1 compatibility
 
 The CheckResult field set and evidence schema are unchanged. Successful and
@@ -64,7 +86,7 @@ provided here.
 ## Regression checks
 
 ```bash
-python -m pytest tests/test_check_process.py tests/test_checks.py -q
+python -m pytest tests/test_check_process.py tests/test_checks.py tests/test_scope_drift.py -q
 python demo/run_bounded_checks.py
 ```
 
