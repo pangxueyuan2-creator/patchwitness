@@ -2,6 +2,33 @@
 
 PatchWitness rules are deterministic and stable within a major schema version.
 
+## Path pattern semantics
+
+The allow, deny and protected lists share one repository-relative, case-sensitive
+segment matcher. `*`, `?` and character classes match inside one path segment;
+`**` spans zero or more complete segments. Directory forms ending in `/` or `/**`
+include the matched directory itself and its descendants, including when the
+prefix contains wildcards.
+
+For example, `packages/*/generated/**` matches `packages/api/generated` and
+`packages/api/generated/deep/out.txt`, but not `packages/a/b/generated/out.txt`
+or `packages/api/generated-old/out.txt`. `**/.github/workflows/**` matches both
+root and nested workflow directories. Patterns such as `src/` and plain `src`
+keep their existing literal-directory behavior. The standalone patterns `*`,
+`**` and `**/*` retain their legacy match-all behavior. Leading `./` is ignored.
+Empty patterns match nothing and are rejected in contract files.
+
+Both sides of a rename are checked. Deny wins over allow, and a protected match
+is still PW003 even when it is also allowed. These rules are not a `.gitignore`
+or CODEOWNERS parser; do not assume their negation or ownership semantics.
+
+Before versions containing the directory-glob fix, wildcard prefixes ending in
+`/` or `/**` were compared literally. Such deny/protected patterns could miss a
+matching path, while allow patterns could reject it. Re-run prior checks that
+relied on these patterns with the fixed revision. On v0.3.0, use explicit literal
+directory entries (for example `packages/api/generated/**`) until upgrading.
+The fix changes matching behavior, not rule IDs or evidence-v1 integrity bytes.
+
 ## PW001
 
 The changed path matches `denied_paths`. Deny rules always win.

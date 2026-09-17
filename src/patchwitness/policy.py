@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import fnmatch
 from collections.abc import Iterable
-from functools import cache
 from pathlib import PurePosixPath
 
 from patchwitness.models import CheckResult, Contract, FileChange, Finding, Severity
@@ -126,24 +125,21 @@ def _matches_any(path: str, patterns: Iterable[str]) -> bool:
 def _glob_match(path: str, pattern: str) -> bool:
     """Match POSIX path segments, with ** spanning zero or more segments."""
     path_parts = tuple(path.split("/"))
-    pattern_parts = tuple(pattern.split("/"))
-
-    @cache
-    def match(path_index: int, pattern_index: int) -> bool:
-        if pattern_index == len(pattern_parts):
-            return path_index == len(path_parts)
-        token = pattern_parts[pattern_index]
+    # Dynamic programming avoids stack exhaustion on deep repository paths.
+    # After each token, matched[i] means the first i path segments match it and
+    # all preceding tokens. Only the previous and current rows are retained.
+    matched = [True] + [False] * len(path_parts)
+    for token in pattern.split("/"):
+        current = [False] * (len(path_parts) + 1)
         if token == "**":
-            return match(path_index, pattern_index + 1) or (
-                path_index < len(path_parts) and match(path_index + 1, pattern_index)
-            )
-        if path_index >= len(path_parts):
-            return False
-        return fnmatch.fnmatchcase(path_parts[path_index], token) and match(
-            path_index + 1, pattern_index + 1
-        )
-
-    return match(0, 0)
+            current[0] = matched[0]
+            for index in range(1, len(current)):
+                current[index] = matched[index] or current[index - 1]
+        else:
+            for index, part in enumerate(path_parts, 1):
+                current[index] = matched[index - 1] and fnmatch.fnmatchcase(part, token)
+        matched = current
+    return matched[-1]
 
 
 def _matches(path: str, pattern: str) -> bool:
@@ -164,17 +160,16 @@ def _matches(path: str, pattern: str) -> bool:
     if normalized in {"*", "**", "**/*"}:
         return True
 
-    # directory form: "src/" or "src/**"
-    if normalized.endswith("/**"):
-        prefix = normalized[:-3].rstrip("/")
+    # Literal directories retain the prefix fast path. A wildcard directory
+    # prefix must instead use segment matching: "packages/*/generated/**" is
+    # not a directory whose name literally contains an asterisk.
+    if normalized.endswith("/**") or normalized.endswith("/"):
+        prefix = (normalized[:-3] if normalized.endswith("/**") else normalized).rstrip("/")
         if not prefix:
             return True
-        return path == prefix or path.startswith(prefix + "/")
-    if normalized.endswith("/"):
-        prefix = normalized.rstrip("/")
-        if not prefix:
-            return True
-        return path == prefix or path.startswith(prefix + "/")
+        if not any(character in prefix for character in "*?["):
+            return path == prefix or path.startswith(prefix + "/")
+        return _glob_match(path, prefix + "/**")
 
     # exact path
     if "*" not in normalized and "?" not in normalized and "[" not in normalized:

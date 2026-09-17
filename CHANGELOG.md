@@ -5,6 +5,11 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Fixed
+
+- Apply segment glob semantics to wildcard directory prefixes in allow, deny and protected paths; keep literal-directory behavior and check both rename paths. Existing v0.3.0 users of these patterns should use explicit literal directories until upgrading and then re-run prior checks; see [pattern semantics](docs/rules.md#path-pattern-semantics).
+- Avoid recursion-limit failures in glob matching for deeply nested paths or repeated recursive pattern segments.
+
 ## [0.3.0] - 2026-09-16
 
 ### Changed
