@@ -104,7 +104,7 @@ def test_segment_matcher_agrees_with_small_exhaustive_reference() -> None:
         if not pattern:
             return not path
         if pattern[0] == "**":
-            return reference(path, pattern[1:]) or bool(path) and reference(path[1:], pattern)
+            return reference(path, pattern[1:]) or (bool(path) and reference(path[1:], pattern))
         return bool(path) and fnmatch.fnmatchcase(path[0], pattern[0]) and reference(
             path[1:], pattern[1:]
         )
