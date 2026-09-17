@@ -5,6 +5,12 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve clean-room patch paths regardless of Git diff prefix settings, preventing
+  checks from running against stale nested files or failing on custom prefixes. See
+  [compatibility notes](docs/clean-room-patch-paths.md).
+
 ## [0.3.0] - 2026-09-16
 
 ### Changed
