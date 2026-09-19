@@ -70,7 +70,7 @@ def test_masked_index_is_rejected_without_changing_source(
     original_worktrees = git(root, "worktree", "list", "--porcelain")
 
     with (
-        pytest.raises(CleanRoomError, match="assume-unchanged|skip-worktree"),
+        pytest.raises(CleanRoomError, match=r"assume-unchanged|skip-worktree"),
         clean_room(root, "HEAD"),
     ):
         pytest.fail("masked source must not yield an unverifiable check workspace")
@@ -93,7 +93,7 @@ def test_capture_cannot_report_passing_old_code_for_masked_candidate(
         return ()
 
     monkeypatch.setattr("patchwitness.evidence.run_checks", forbidden_checks)
-    with pytest.raises(CleanRoomError, match="assume-unchanged|skip-worktree"):
+    with pytest.raises(CleanRoomError, match=r"assume-unchanged|skip-worktree"):
         capture_evidence(root, contract(), clean_room_checks=True)
     assert not calls
 

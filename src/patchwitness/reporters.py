@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from patchwitness.models import EvidencePack
 
@@ -93,7 +94,11 @@ def render_sarif(pack: EvidencePack, *, evidence_path: str | None = None) -> dic
                 region["startLine"] = int(finding["line"])
             location: dict[str, Any] = {
                 "physicalLocation": {
-                    "artifactLocation": {"uri": str(finding["path"]).replace("\\", "/")}
+                    "artifactLocation": {
+                        # Filenames are paths, not pre-escaped URI references.
+                        # Preserve separators while encoding %, #, ?, and UTF-8.
+                        "uri": quote(str(finding["path"]).replace("\\", "/"), safe="/")
+                    }
                 }
             }
             if region:
