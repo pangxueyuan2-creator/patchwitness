@@ -7,6 +7,10 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Prevent clean-room checks from testing stale base content hidden by Git index
+  flags or textconv drivers. Preserve literal untracked paths and reject incomplete
+  listings or omitted non-regular inputs; see [fidelity notes](docs/clean-room-fidelity.md).
+
 - Reject mistyped TOML policy values before legacy coercion can widen permissions
   or execute checks. Quoted booleans, scalar path lists and invalid known field
   types now cause configuration errors; see [migration notes](docs/contracts.md).
