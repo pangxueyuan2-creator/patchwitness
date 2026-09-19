@@ -48,7 +48,7 @@ def test_batch_alternates_requests_and_reads_bounded_chunks(
 
 
 @pytest.mark.parametrize("payload", [b"", b"invalid\n", b"a blob bad\n", b"a blob 3\nab",
-                                     b"a blob 1\naX", b"a tree 3\nab"])
+                                     b"a blob 1\naX", b"a tree 3\nab", b"invalid submodule\n"])
 def test_invalid_batch_frames_fail_and_close_child(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, payload: bytes,
 ) -> None:
@@ -71,3 +71,19 @@ def test_binary_detection_reads_only_the_prefix(
     path.write_bytes(b"\0" + b"a" * 16_384)
     monkeypatch.setattr(Path, "read_bytes", Mock(side_effect=AssertionError("unbounded read")))
     assert _is_binary(path) is True
+
+
+@pytest.mark.parametrize("header", [b":module missing\n", b"a" * 40 + b" submodule\n",
+                                    b"a" * 64 + b" submodule\n"])
+def test_absent_submodule_objects_keep_the_following_blob_aligned(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, header: bytes,
+) -> None:
+    process = Mock()
+    process.stdin = io.BytesIO()
+    process.stdout = io.BytesIO(header + b"b" * 40 + b" blob 3\nabc\n")
+    process.wait.return_value = 0
+    process.poll.return_value = 0
+    monkeypatch.setattr("patchwitness.git.subprocess.Popen", Mock(return_value=process))
+    assert _batch_git_blob_sha256(tmp_path, "", ["module", "file"]) == {
+        "module": None, "file": hashlib.sha256(b"abc").hexdigest(),
+    }

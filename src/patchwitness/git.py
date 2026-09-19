@@ -390,6 +390,15 @@ def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[
                 output[path] = None
                 continue
             parts = header.rstrip(b"\n").rsplit(b" ", 2)
+            # Newer Git distinguishes an absent submodule commit from a missing
+            # path. It is still not a blob and has no body to consume.
+            if (
+                len(parts) == 2 and parts[1] == b"submodule"
+                and len(parts[0]) in (40, 64)
+                and all(char in b"0123456789abcdef" for char in parts[0])
+            ):
+                output[path] = None
+                continue
             if len(parts) != 3 or not parts[2].isdigit():
                 raise GitError("malformed cat-file batch header")
             remaining = int(parts[2])
