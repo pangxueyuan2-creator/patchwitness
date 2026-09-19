@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import subprocess
@@ -148,13 +149,14 @@ def test_textconv_cannot_replace_candidate_with_display_text(
     )
     git(root, "config", "diff.constant.textconv", f'"{sys.executable}" "{converter}"')
     (root / "app.py").write_text(candidate, encoding="utf-8")
+    candidate_bytes = (root / "app.py").read_bytes()
 
     with clean_room(root, "HEAD") as verifier:
         assert (verifier / "app.py").read_text(encoding="utf-8") == candidate
     assert not marker.exists()
 
     pack = verify_evidence(capture_evidence(root, contract(), clean_room_checks=True))
-    assert pack.changes[0]["after_sha256"] == hashlib.sha256(candidate.encode()).hexdigest()
+    assert pack.changes[0]["after_sha256"] == hashlib.sha256(candidate_bytes).hexdigest()
     assert pack.checks[0]["exit_code"] == (7 if "SystemExit" in candidate else 0)
     assert pack.status == (GateStatus.FAIL if "SystemExit" in candidate else GateStatus.PASS)
     assert not marker.exists()
@@ -182,8 +184,13 @@ def test_non_utf8_listing_is_rejected_not_aliased(tmp_path: Path) -> None:
     worktree = tmp_path / "target"
     worktree.mkdir()
     bad_name = os.fsencode(root) + b"/bad-\xff.txt"
-    with open(bad_name, "wb") as handle:
-        handle.write(b"original")
+    try:
+        with open(bad_name, "wb") as handle:
+            handle.write(b"original")
+    except OSError as exc:
+        if exc.errno != errno.EILSEQ:
+            raise
+        pytest.skip("filesystem rejects non-UTF-8 filenames")
     (root / "bad-\ufffd.txt").write_bytes(b"replacement alias")
     with pytest.raises(CleanRoomError, match="UTF-8"):
         _copy_untracked(root, worktree)
@@ -329,3 +336,27 @@ def test_non_path_git_output_does_not_require_utf8(
     result = cleanroom_module._git(tmp_path, "worktree", "add", "repo", "HEAD")
     assert result.returncode == 0
     assert "subject" in result.stdout
+
+
+@pytest.mark.parametrize("listing", ["untracked", "index"])
+def test_non_utf8_git_output_is_rejected_on_every_platform(
+    tmp_path: Path, listing: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "repo"
+    target = tmp_path / "target"
+    root.mkdir()
+    target.mkdir()
+    (root / "bad-\ufffd.txt").write_bytes(b"replacement alias")
+    payload = (b"H " if listing == "index" else b"") + b"bad-\xff.txt\0"
+    monkeypatch.setattr(
+        cleanroom_module.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            ["git"], 0, stdout=payload, stderr=b""
+        ),
+    )
+    with pytest.raises(CleanRoomError, match="UTF-8"):
+        if listing == "untracked":
+            _copy_untracked(root, target)
+        else:
+            cleanroom_module._require_unmasked_index(root)
+    assert not list(target.iterdir())
