@@ -14,7 +14,6 @@ from patchwitness.evidence import capture_evidence, load_evidence, verify_eviden
 from patchwitness.git import collect_changes, resolve_revision
 from patchwitness.impact import analyze_impact
 
-
 # Includes the wire line delimiter. This is an adapter budget, not an MCP limit.
 MAX_MCP_MESSAGE_BYTES = 1024 * 1024
 
@@ -100,6 +99,7 @@ class MCPServer:
         )
         sink = output_stream if output_stream is not None else sys.stdout
         while True:
+            response: dict[str, Any] | None
             try:
                 line = _read_message_line(source)
                 if line is None:
