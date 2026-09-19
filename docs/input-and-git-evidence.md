@@ -31,6 +31,45 @@ small newline-delimited stdio adapter, not a claim of full MCP conformance or a
 new authorization boundary. Explicit check execution still requires a trusted
 repository/environment; it is not an operating-system sandbox.
 
+## MCP stdio: unambiguous, bounded wire messages
+
+The stdio adapter rejects duplicate JSON object keys at every nesting level,
+including escaped spellings of the same key. It does not select the first or
+last value of a duplicated execution flag. Non-finite values (`NaN`, `Infinity`,
+and numeric overflow such as `1e10000`) are rejected, including in otherwise
+ignored extension fields. These failures occur before tool dispatch, contract
+loading, Git access or check execution. Normal finite JSON extension values,
+valid tool defaults and explicit boolean opt-in retain their existing behavior.
+
+Each physical input line has a **1 MiB UTF-8 byte limit, including its newline
+or CRLF delimiter**. Oversized input is discarded through the next newline (or
+EOF), with one `-32600` response and a null ID; a valid-looking suffix is not
+reinterpreted as another request. Reads and discarded-tail chunks are bounded.
+For caller-supplied text streams, reads are character-bounded and the UTF-8 byte
+limit is also checked before parsing. This is a PatchWitness adapter budget,
+not a limit imposed by the MCP specification. It does not limit response size,
+add a wall-clock deadline or protect against a peer that never finishes a line.
+
+The CLI reads raw stdin bytes and explicitly decodes UTF-8 instead of relying
+on the platform locale or JSON byte-encoding autodetection. Invalid UTF-8,
+UTF-16/32 input, BOM-prefixed JSON, duplicate keys, non-finite numbers and parser
+resource failures produce a sanitized `-32700` parse error without echoing the
+payload. The following complete valid line can still be handled. CRLF input,
+ordinary blank lines, valid Unicode and the legacy final line without a newline
+remain supported. Embedded callers may still supply a decoded text stream to
+`MCPServer.serve`; for byte-accurate wire framing, supply a binary stream.
+Underlying stream-read errors propagate instead of retrying a broken stream
+or pretending they are malformed JSON.
+
+These changes apply only to decoding the stdio wire input. `handle()` already
+receives a Python object, so it cannot detect keys discarded by an upstream
+parser. Callers that parse messages themselves must enforce equivalent JSON
+rules before invoking it. This is neither an authentication layer nor permission
+to run untrusted repository commands.
+
+References: [MCP 2025-11-25 transports](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+and [Python JSON decoder extensions](https://docs.python.org/3/library/json.html#standard-compliance-and-interoperability).
+
 ## Git collection: literal paths and complete responses
 
 NUL-delimited `git diff --numstat -z` records split only the two numeric fields
@@ -70,7 +109,7 @@ than treating old passports as corrected retroactively.
 The focused regression suites are:
 
 ```bash
-python -m pytest -q tests/test_mcp.py tests/test_mcp_validation.py \
+python -m pytest -q tests/test_mcp.py tests/test_mcp_validation.py tests/test_mcp_transport.py \
   tests/test_git.py tests/test_git_path_identity.py tests/test_git_batch_streaming.py
 ```
 

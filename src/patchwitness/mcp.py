@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, BinaryIO, TextIO
 
 from patchwitness._version import __version__
 from patchwitness.config import load_contract
@@ -14,25 +15,110 @@ from patchwitness.git import collect_changes, resolve_revision
 from patchwitness.impact import analyze_impact
 
 
+# Includes the wire line delimiter. This is an adapter budget, not an MCP limit.
+MAX_MCP_MESSAGE_BYTES = 1024 * 1024
+
+
+class _MessageTooLarge(ValueError):
+    """One physical input line exceeded the adapter's byte budget."""
+
+
+class _MessageParseError(ValueError):
+    """A consumed input frame cannot be decoded as strict JSON."""
+
+
+def _line_ended(line: str | bytes) -> bool:
+    return line.endswith(b"\n") if isinstance(line, bytes) else line.endswith("\n")
+
+
+def _read_message_line(stream: TextIO | BinaryIO) -> str | None:
+    """Read one bounded line; discard an oversized line without retaining its tail."""
+    raw = stream.readline(MAX_MCP_MESSAGE_BYTES + 1)
+    if not raw:
+        return None
+    oversized = len(raw) > MAX_MCP_MESSAGE_BYTES
+    if not oversized and isinstance(raw, str):
+        try:
+            oversized = len(raw.encode("utf-8")) > MAX_MCP_MESSAGE_BYTES
+        except UnicodeError as exc:
+            raise _MessageParseError from exc
+    if oversized:
+        while raw and not _line_ended(raw):
+            raw = stream.readline(64 * 1024)
+        raise _MessageTooLarge
+    # Decode bytes explicitly: json.loads(bytes) also accepts UTF-16/32 and BOMs.
+    try:
+        return raw.decode("utf-8") if isinstance(raw, bytes) else raw
+    except UnicodeError as exc:
+        raise _MessageParseError from exc
+
+
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            # Never echo rejected keys or values from client input.
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
+def _reject_constant(value: str) -> None:
+    raise ValueError("non-finite JSON number")
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite JSON number")
+    return number
+
+
+def _decode_message(line: str) -> object:
+    try:
+        request: object = json.loads(
+            line, object_pairs_hook=_unique_object,
+            parse_constant=_reject_constant, parse_float=_finite_float,
+        )
+        return request
+    except (ValueError, RecursionError) as exc:
+        raise _MessageParseError from exc
+
+
 class MCPServer:
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()
 
-    def serve(self, input_stream: TextIO = sys.stdin, output_stream: TextIO = sys.stdout) -> int:
-        for line in input_stream:
-            if not line.strip():
-                continue
+    def serve(
+        self,
+        input_stream: TextIO | BinaryIO | None = None,
+        output_stream: TextIO | None = None,
+    ) -> int:
+        # Raw stdin preserves frame boundaries even when a line is not UTF-8.
+        source = (
+            input_stream if input_stream is not None else getattr(sys.stdin, "buffer", sys.stdin)
+        )
+        sink = output_stream if output_stream is not None else sys.stdout
+        while True:
             try:
-                request = json.loads(line)
-                response = self.handle(request)
-            except json.JSONDecodeError:
+                line = _read_message_line(source)
+                if line is None:
+                    return 0
+                if not line.strip():
+                    continue
+                request = _decode_message(line)
+            except _MessageTooLarge:
+                response = self._error(None, -32600, "message exceeds the 1 MiB input limit")
+            except _MessageParseError:
                 response = self._error(None, -32700, "parse error")
-            except Exception:
-                response = self._error(None, -32603, "internal server error")
+            else:
+                try:
+                    response = self.handle(request)
+                except Exception:
+                    response = self._error(None, -32603, "internal server error")
             if response is not None:
-                output_stream.write(json.dumps(response, separators=(",", ":")) + "\n")
-                output_stream.flush()
-        return 0
+                sink.write(json.dumps(response, separators=(",", ":")) + "\n")
+                sink.flush()
 
     def handle(self, request: object) -> dict[str, Any] | None:
         if not isinstance(request, dict):
