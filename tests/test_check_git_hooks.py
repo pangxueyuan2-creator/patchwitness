@@ -63,6 +63,10 @@ def check_script(tmp_path: Path, *, config_assertions: bool = False) -> CheckSpe
 def test_real_git_children_obey_clean_room_hook_boundary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, location: str, isolated: bool
 ) -> None:
+    # These cases own their input config, even when pytest itself is a
+    # clean-room check. Live-mode inheritance is tested separately below.
+    monkeypatch.delenv("GIT_CONFIG_PARAMETERS", raising=False)
+    monkeypatch.delenv("GIT_CONFIG_COUNT", raising=False)
     root, marker, hooks = fixture_repo(tmp_path, location)
     if location == "environment":
         monkeypatch.setenv("GIT_CONFIG_COUNT", "2")
@@ -198,3 +202,21 @@ def test_explicit_child_override_is_not_an_os_sandbox(tmp_path: Path) -> None:
     ),), untrusted=True)
     assert result.passed
     assert marker.exists()  # Documented boundary: explicit child -c overrides inherited config.
+
+
+def test_live_checks_preserve_inherited_hook_suppression(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root, marker, _ = fixture_repo(tmp_path, "local")
+    outer_hooks = tmp_path / "outer-empty-hooks"
+    outer_hooks.mkdir()
+    monkeypatch.setenv(
+        "GIT_CONFIG_PARAMETERS", "'core.hooksPath'='" + outer_hooks.as_posix() + "'"
+    )
+    spec = check_script(tmp_path)
+    environment = dict(os.environ)
+    result, = run_checks(root, (spec,), untrusted=False)
+    assert result.passed
+    assert not marker.exists()
+    assert outer_hooks.is_dir()  # The caller, not this check, owns its lifetime.
+    assert dict(os.environ) == environment
