@@ -7,6 +7,12 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Keep clean-room hook suppression active in check subprocesses without rewriting
+  source Git configuration; retain explicit child overrides as a non-sandbox boundary.
+- Prevent clean-room checks from testing stale base content hidden by Git index
+  flags or textconv drivers. Preserve literal untracked paths and reject incomplete
+  listings or omitted non-regular inputs; see [fidelity notes](docs/clean-room-fidelity.md).
+
 - Distinguish completed SARIF analysis from policy approval: failed gate results
   keep their findings and explicit `gateStatus`, instead of being labeled as
   tool execution failures. Gate decisions and evidence digests are unchanged;
