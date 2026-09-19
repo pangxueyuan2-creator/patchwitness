@@ -7,6 +7,9 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Reject mistyped TOML policy values before legacy coercion can widen permissions
+  or execute checks. Quoted booleans, scalar path lists and invalid known field
+  types now cause configuration errors; see [migration notes](docs/contracts.md).
 - Preserve clean-room patch paths regardless of Git diff prefix settings, preventing
   checks from running against stale nested files or failing on custom prefixes. See
   [compatibility notes](docs/clean-room-patch-paths.md).
