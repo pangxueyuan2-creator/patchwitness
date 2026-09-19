@@ -65,8 +65,9 @@ def test_artifact_uri_roundtrips_without_reinterpreting_filename(
     assert result["ruleId"] == "PW002" and result["level"] == "error"
     assert result["properties"]["evidenceSha256"] == pack.payload_sha256
     assert pack.to_dict() == original
-    # This URI-only fix does not reinterpret gate/invocation status.
-    assert run["invocations"][0]["executionSuccessful"] is False
+    # Successful analysis/reporting does not approve this failing gate result.
+    assert run["invocations"][0]["executionSuccessful"] is True
+    assert run["invocations"][0]["properties"]["gateStatus"] == "fail"
 
 
 def test_no_location_and_written_report_keep_existing_semantics(tmp_path: Path) -> None:

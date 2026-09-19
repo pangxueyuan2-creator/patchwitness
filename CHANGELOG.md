@@ -7,6 +7,10 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Distinguish completed SARIF analysis from policy approval: failed gate results
+  keep their findings and explicit `gateStatus`, instead of being labeled as
+  tool execution failures. Gate decisions and evidence digests are unchanged;
+  see [consumer migration](docs/sarif-paths.md#analysis-completion-is-not-gate-approval-unreleased).
 - Reject mistyped TOML policy values before legacy coercion can widen permissions
   or execute checks. Quoted booleans, scalar path lists and invalid known field
   types now cause configuration errors; see [migration notes](docs/contracts.md).
