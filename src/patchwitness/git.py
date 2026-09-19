@@ -61,6 +61,7 @@ def load_file_at_revision(root: Path, revision: str, relative_path: str) -> byte
 
 
 def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
+    # UI ignore settings must not hide gitlinks from scope or line-budget evidence.
     cached_status_result = _run(
         root,
         "diff",
@@ -69,6 +70,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
@@ -79,6 +81,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
@@ -100,11 +103,13 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
     numstat_result = _run(
-        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff", base_revision, "--"
+        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff",
+        "--ignore-submodules=none", base_revision, "--",
     )
     stats = _parse_numstat_z(cached_numstat_result.stdout)
     stats.update(_parse_numstat_z(numstat_result.stdout))
@@ -212,7 +217,7 @@ def verification_conflicts(root: Path, base_revision: str) -> tuple[str, ...]:
         for path, status, _previous in _parse_name_status_z(
             _run(
                 root, "diff", "--cached", "--name-status", "-z", "--no-renames",
-                "--no-ext-diff", base_revision, "--",
+                "--no-ext-diff", "--ignore-submodules=none", base_revision, "--",
             ).stdout
         )
     }
@@ -300,7 +305,11 @@ def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
 
 
 def is_dirty(root: Path) -> bool:
-    return bool(_run(root, "status", "--porcelain").stdout.strip())
+    """Observe candidate dirt even when the caller hides it in Git's UI."""
+    return bool(_run(
+        root, "status", "--porcelain=v1", "-z",
+        "--untracked-files=all", "--ignore-submodules=none",
+    ).stdout)
 
 
 def _run(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
