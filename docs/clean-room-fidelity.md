@@ -72,6 +72,37 @@ protection against every concurrent source/target replacement. Use an isolated
 runner or OS sandbox for untrusted repositories and do not mutate a checkout
 during capture.
 
+## Git hooks in check subprocesses (unreleased)
+
+Disabling hooks only on `git worktree add` does not disable them in Git commands
+subsequently launched by a check. A real installed-wheel reproduction invoked
+`git checkout --detach HEAD` from a check: the capture returned PASS and reported
+`git_hooks_disabled: true`, but a local `post-checkout` hook ran.
+
+Clean-room check processes now inherit a command-scoped `core.hooksPath` pointing
+to a fresh empty directory outside the candidate. Each check has its own directory,
+kept for the bounded process lifetime and removed afterward, including on failure
+or timeout. Live checks retain their original hook behavior. The source repository
+configuration, tracked index entries, hooks and parent environment are not changed.
+Git itself can refresh index stat-cache bytes during ordinary collection.
+
+The implementation appends a safely single-quoted entry to
+`GIT_CONFIG_PARAMETERS`, Git's own inherited `-c` parameter representation. This
+retains unrelated inherited parameters and `GIT_CONFIG_COUNT` pairs while placing
+the hook setting after them. Tests exercise real Git dispatch, inherited overrides,
+parallel checks and directory names containing quotes, spaces and Unicode. This
+representation follows Git's implementation; cross-platform CI runs the same
+regressions. It is not a new public PatchWitness API.
+
+**This is default hook suppression, not a sandbox.** A check can explicitly pass
+`git -c core.hooksPath=...`, replace its environment or run any executable directly.
+Such intentional overrides are outside this boundary and are regression-tested
+as a limitation, not claimed to be blocked. The existing evidence field records
+requested clean-room configuration; it is not authenticated proof of descendant
+behavior or a claim that checks ran. No Evidence v1 fields or digest rules change.
+Re-run affected checks using the fixed source; a historical valid digest does not
+establish that its hooks were suppressed. This source change is not in v0.3.0.
+
 ## Reproduction and references
 
 Run `python -m pytest -q tests/test_cleanroom_fidelity.py` for real-Git flag,
@@ -80,3 +111,9 @@ textconv, CLI and pathname regressions plus contained error-path fixtures.
 - [Git index flags](https://git-scm.com/docs/git-update-index)
 - [Git NUL-delimited listings and status tags](https://git-scm.com/docs/git-ls-files)
 - [Git diff textconv semantics](https://git-scm.com/docs/git-diff)
+
+- [Git hook lookup](https://git-scm.com/docs/githooks)
+- [Git command configuration and precedence](https://git-scm.com/docs/git-config)
+- [Git inherited parameter encoder/parser (2.47.3)](https://github.com/git/git/blob/v2.47.3/config.c)
+
+Run `python -m pytest -q tests/test_check_git_hooks.py` for check-process regressions.

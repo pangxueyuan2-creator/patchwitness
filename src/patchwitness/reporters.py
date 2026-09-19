@@ -119,8 +119,13 @@ def render_sarif(pack: EvidencePack, *, evidence_path: str | None = None) -> dic
         for rule_id, (title, description) in RULES.items()
     ]
     invocation: dict[str, Any] = {
-        "executionSuccessful": pack.status.value == "pass",
-        "properties": {"evidenceSha256": pack.payload_sha256},
+        # A completed analysis can reject the change without the tool failing.
+        # Gate approval is a separate fact, not SARIF invocation success.
+        "executionSuccessful": True,
+        "properties": {
+            "evidenceSha256": pack.payload_sha256,
+            "gateStatus": pack.status.value,
+        },
     }
     if evidence_path:
         invocation["properties"]["evidencePath"] = evidence_path
