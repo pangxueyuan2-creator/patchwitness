@@ -145,10 +145,42 @@ def test_text_stream_reads_are_bounded_even_when_draining(
 
 @pytest.mark.parametrize("bad", ["[" * 10000 + "0" + "]" * 10000, "9" * 10000],
                          ids=["deep-nesting", "large-integer"])
-def test_parser_resource_errors_are_contained_parse_errors(tmp_path: Path, bad: str) -> None:
+def test_deep_or_large_nonobject_input_is_rejected_and_recovers(tmp_path: Path, bad: str) -> None:
+    # Some supported decoders can parse this depth. A decoded array/integer is
+    # still not a JSON-RPC request; only an actual decode failure is -32700.
+    expected_code = -32600
+    try:
+        json.loads(bad)
+    except (ValueError, RecursionError):
+        expected_code = -32700
     result = responses(MCPServer(tmp_path), bad + "\n" + LIST_REQUEST)
-    assert result[0]["error"]["code"] == -32700
-    assert result[1]["id"] == "next"
+    assert result[0]["error"]["code"] == expected_code
+    assert result[0]["id"] is None
+    assert result[1]["id"] == "next" and "result" in result[1]
+
+
+@pytest.mark.parametrize("error_type", [ValueError, RecursionError])
+def test_decoder_resource_failures_are_contained_before_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error_type: type[Exception],
+) -> None:
+    # Fault injection tests the error boundary independently of interpreter limits.
+    original_loads = json.loads
+    wire = CALL_PREFIX + '{"execute_checks":true}}}\n'
+
+    def failing_loads(payload: str, **kwargs: Any) -> Any:
+        if payload == wire:
+            raise error_type("synthetic decoder resource failure")
+        return original_loads(payload, **kwargs)
+
+    server = MCPServer(tmp_path)
+    dispatch = Mock(return_value={})
+    monkeypatch.setattr(server, "_call", dispatch)
+    monkeypatch.setattr(mcp.json, "loads", failing_loads)
+    result = responses(server, wire + LIST_REQUEST)
+    assert result[0]["error"] == {"code": -32700, "message": "parse error"}
+    assert result[0]["id"] is None
+    assert result[1]["id"] == "next" and "result" in result[1]
+    dispatch.assert_not_called()
 
 
 @pytest.mark.parametrize("suffix", ["\n", "\r\n", ""])
