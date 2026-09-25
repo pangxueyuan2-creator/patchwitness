@@ -72,7 +72,7 @@ A green passport does **not** mean the code is correct. It only means the record
 
 ## Setting up a policy
 
-Use [typed TOML policy values](docs/contracts.md). The unreleased strict loader rejects quoted booleans and scalar path lists instead of coercing them.
+Use [typed TOML policy values](docs/contracts.md). The strict loader rejects quoted booleans and scalar path lists instead of coercing them.
 
 ```bash
 patchwitness init
