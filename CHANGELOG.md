@@ -7,6 +7,14 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ### Fixed
 
+- Validate MCP request and tool argument types before side effects; reject
+  ambiguous JSON and oversized input lines while preserving following requests.
+  Check execution requires an explicit JSON boolean opt-in. See
+  [input boundaries](docs/input-and-git-evidence.md).
+- Preserve literal Git paths and line counts, stream complete batch responses
+  without write-all/read-all deadlocks, and prevent Git display preferences from
+  hiding submodule changes or untracked candidate dirt. See
+  [visibility boundaries](docs/git-visibility.md).
 - Keep clean-room hook suppression active in check subprocesses without rewriting
   source Git configuration; retain explicit child overrides as a non-sandbox boundary.
 - Prevent clean-room checks from testing stale base content hidden by Git index

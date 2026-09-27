@@ -7,6 +7,7 @@ import os
 import stat
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from pathlib import Path
 
 from patchwitness.models import FileChange
@@ -60,6 +61,7 @@ def load_file_at_revision(root: Path, revision: str, relative_path: str) -> byte
 
 
 def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
+    # UI ignore settings must not hide gitlinks from scope or line-budget evidence.
     cached_status_result = _run(
         root,
         "diff",
@@ -68,6 +70,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
@@ -78,6 +81,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
@@ -99,11 +103,13 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
         "-z",
         "--find-renames",
         "--no-ext-diff",
+        "--ignore-submodules=none",
         base_revision,
         "--",
     )
     numstat_result = _run(
-        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff", base_revision, "--"
+        root, "diff", "--numstat", "-z", "--find-renames", "--no-ext-diff",
+        "--ignore-submodules=none", base_revision, "--",
     )
     stats = _parse_numstat_z(cached_numstat_result.stdout)
     stats.update(_parse_numstat_z(numstat_result.stdout))
@@ -161,7 +167,7 @@ def collect_changes(root: Path, base_revision: str) -> tuple[FileChange, ...]:
             # assume-unchanged, "S" marks skip-worktree, and the remaining
             # uppercase tags mark unmerged index states.
             continue
-        path = entry[1:].strip().replace("\\", "/")
+        path = entry[2:].replace("\\", "/")
         if not path or path in statuses:
             continue
         current_hash = _file_sha256(root, path)
@@ -211,7 +217,7 @@ def verification_conflicts(root: Path, base_revision: str) -> tuple[str, ...]:
         for path, status, _previous in _parse_name_status_z(
             _run(
                 root, "diff", "--cached", "--name-status", "-z", "--no-renames",
-                "--no-ext-diff", base_revision, "--",
+                "--no-ext-diff", "--ignore-submodules=none", base_revision, "--",
             ).stdout
         )
     }
@@ -263,78 +269,66 @@ def _parse_name_status_z(payload: str) -> list[tuple[str, str, str | None]]:
 
 
 def _parse_numstat_z(payload: str) -> dict[str, tuple[int, int, bool]]:
-    """Parse `git diff --numstat -z`. Rename is added\\tdeleted\\t\\0old\\0new\\0."""
-
-    tokens = [token for token in payload.split("\0") if token != ""]
+    """Parse literal NUL-delimited paths; never interpret display-only rename notation."""
+    if not payload:
+        return {}
+    if not payload.endswith("\0"):
+        raise GitError("unterminated NUL-delimited numstat output")
+    tokens = payload[:-1].split("\0")
     stats: dict[str, tuple[int, int, bool]] = {}
     index = 0
     while index < len(tokens):
-        parts = tokens[index].split("\t")
-        # Regular: "added\tdeleted\tpath". Rename/copy -z: "added\tdeleted\t" + old + new.
-        if len(parts) == 3:
-            added_text, deleted_text, path = parts
-            if path == "" and index + 2 < len(tokens):
-                dest = tokens[index + 2].replace("\\", "/")
-                binary = added_text == "-" or deleted_text == "-"
-                stats[dest] = (
-                    0 if binary else int(added_text),
-                    0 if binary else int(deleted_text),
-                    binary,
-                )
-                index += 3
-                continue
-            dest = _normalize_rename_path(path)
-            binary = added_text == "-" or deleted_text == "-"
-            stats[dest] = (
-                0 if binary else int(added_text),
-                0 if binary else int(deleted_text),
-                binary,
-            )
-            index += 1
-            continue
-        if len(parts) == 2 and index + 2 < len(tokens):
-            added_text, deleted_text = parts
-            dest = tokens[index + 2].replace("\\", "/")
-            binary = added_text == "-" or deleted_text == "-"
-            stats[dest] = (
-                0 if binary else int(added_text),
-                0 if binary else int(deleted_text),
-                binary,
-            )
-            index += 3
-            continue
+        # Only the first two tabs are separators. A filename may contain more.
+        parts = tokens[index].split("\t", 2)
+        if len(parts) != 3:
+            raise GitError("malformed numstat record")
+        added_text, deleted_text, path = parts
         index += 1
+        if not path:
+            # Rename/copy records are counts\t\0old\0new\0.
+            if index + 1 >= len(tokens) or not tokens[index] or not tokens[index + 1]:
+                raise GitError("incomplete numstat rename record")
+            path = tokens[index + 1]
+            index += 2
+        binary = added_text == deleted_text == "-"
+        if not binary and not (
+            added_text.isascii() and added_text.isdecimal()
+            and deleted_text.isascii() and deleted_text.isdecimal()
+        ):
+            raise GitError("invalid numstat line counts")
+        stats[path.replace("\\", "/")] = (
+            0 if binary else int(added_text),
+            0 if binary else int(deleted_text),
+            binary,
+        )
     return stats
 
 
 def is_dirty(root: Path) -> bool:
-    return bool(_run(root, "status", "--porcelain").stdout.strip())
+    """Observe candidate dirt even when the caller hides it in Git's UI."""
+    return bool(_run(
+        root, "status", "--porcelain=v1", "-z",
+        "--untracked-files=all", "--ignore-submodules=none",
+    ).stdout)
 
 
 def _run(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         ["git", "-C", str(root), *args],
         capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
         check=False,
+    )
+    # Text-mode subprocess pipes normalize CR/CRLF even inside a literal -z
+    # filename. Decode explicitly to preserve Git's record bytes.
+    decoded = subprocess.CompletedProcess(
+        result.args, result.returncode,
+        result.stdout.decode("utf-8", errors="replace"),
+        result.stderr.decode("utf-8", errors="replace"),
     )
     if check and result.returncode != 0:
         command = "git " + " ".join(args)
-        raise GitError(f"{command} failed: {result.stderr.strip()}")
-    return result
-
-
-def _normalize_rename_path(path: str) -> str:
-    if " => " not in path:
-        return path.replace("\\", "/")
-    if "{" in path and "}" in path:
-        prefix, rest = path.split("{", 1)
-        middle, suffix = rest.split("}", 1)
-        _old, new = middle.split(" => ", 1)
-        return f"{prefix}{new}{suffix}".replace("\\", "/")
-    return path.rsplit(" => ", 1)[-1].replace("\\", "/")
+        raise GitError(f"{command} failed: {decoded.stderr.strip()}")
+    return decoded
 
 
 def safe_regular_file(root: Path, relative_path: str) -> Path | None:
@@ -386,24 +380,61 @@ def _batch_git_blob_sha256(root: Path, revision: str, paths: list[str]) -> dict[
     output: dict[str, str | None] = {}
     try:
         for path in paths:
-            process.stdin.write(f"{revision}:{path}\n".encode())
-        process.stdin.flush()
+            query = f"{revision}:{path}"
+            if "\n" in query or "\r" in query:
+                # Resolve exceptional paths as a single argv value, then send
+                # only the object ID through the newline-delimited protocol.
+                resolved = _run(root, "rev-parse", "--verify", "--end-of-options", query,
+                                check=False)
+                if resolved.returncode != 0:
+                    output[path] = None
+                    continue
+                query = resolved.stdout.strip()
+            # Alternate requests and responses: writing every request first can
+            # deadlock when both the input and output pipes fill.
+            process.stdin.write(query.encode("utf-8") + b"\n")
+            process.stdin.flush()
+            header = process.stdout.readline()
+            if header.endswith(b" missing\n"):
+                output[path] = None
+                continue
+            parts = header.rstrip(b"\n").rsplit(b" ", 2)
+            # Newer Git distinguishes an absent submodule commit from a missing
+            # path. It is still not a blob and has no body to consume.
+            if (
+                len(parts) == 2 and parts[1] == b"submodule"
+                and len(parts[0]) in (40, 64)
+                and all(char in b"0123456789abcdef" for char in parts[0])
+            ):
+                output[path] = None
+                continue
+            if len(parts) != 3 or not parts[2].isdigit():
+                raise GitError("malformed cat-file batch header")
+            remaining = int(parts[2])
+            digest = hashlib.sha256()
+            while remaining:
+                chunk = process.stdout.read(min(remaining, 65_536))
+                if not chunk:
+                    raise GitError("truncated cat-file batch content")
+                remaining -= len(chunk)
+                if parts[1] == b"blob":
+                    digest.update(chunk)
+            if process.stdout.read(1) != b"\n":
+                raise GitError("invalid cat-file batch terminator")
+            # Non-blob bodies must still be consumed to keep the next record aligned.
+            output[path] = digest.hexdigest() if parts[1] == b"blob" else None
         process.stdin.close()
-        for path in paths:
-            header = process.stdout.readline().decode("utf-8", errors="replace").strip()
-            if header.endswith(" missing"):
-                output[path] = None
-                continue
-            parts = header.rsplit(" ", 2)
-            if len(parts) != 3 or parts[1] != "blob":
-                output[path] = None
-                continue
-            size = int(parts[2])
-            content = process.stdout.read(size)
-            process.stdout.read(1)
-            output[path] = hashlib.sha256(content).hexdigest()
+        if process.wait(timeout=30) != 0:
+            raise GitError("cat-file batch process failed")
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise GitError("cat-file batch could not complete") from exc
     finally:
-        process.wait(timeout=30)
+        with suppress(OSError):
+            process.stdin.close()
+        process.stdout.close()
+        if process.poll() is None:
+            process.kill()
+        process.wait()
     return output
 
 
@@ -420,7 +451,8 @@ def _is_binary(path: Path) -> bool:
     try:
         if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):
             return False
-        sample = path.read_bytes()[:8_192]
+        with path.open("rb") as handle:
+            sample = handle.read(8_192)
     except OSError:
         return False
     return b"\0" in sample
