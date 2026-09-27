@@ -10,7 +10,9 @@ import sys
 import time
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from patchwitness.check_process import run_check_process
 from patchwitness.models import CheckResult, CheckSpec
@@ -76,7 +78,17 @@ def _run_one(root: Path, spec: CheckSpec, *, untrusted: bool = False) -> CheckRe
             if not existing_python_path
             else str(source_root) + os.pathsep + existing_python_path
         )
-    result = run_check_process(command, root=root, env=env, timeout=spec.timeout_seconds)
+    with ExitStack() as cleanup:
+        if untrusted:
+            hooks = cleanup.enter_context(TemporaryDirectory(prefix="patchwitness-hooks-"))
+            # Git propagates -c options through this quoted parameter list. Append
+            # after inherited options (including GIT_CONFIG_COUNT) without editing
+            # shared repository config or the parent process's environment.
+            value = "core.hooksPath=" + Path(hooks).as_posix()
+            quoted = "'" + value.replace("'", "'\\''") + "'"
+            inherited = env.get("GIT_CONFIG_PARAMETERS", "")
+            env["GIT_CONFIG_PARAMETERS"] = (inherited + " " if inherited else "") + quoted
+        result = run_check_process(command, root=root, env=env, timeout=spec.timeout_seconds)
     timed_out = result.timed_out
     if result.failure is None:
         exit_code = result.returncode

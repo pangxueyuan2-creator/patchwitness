@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from patchwitness.models import EvidencePack
 
@@ -93,7 +94,11 @@ def render_sarif(pack: EvidencePack, *, evidence_path: str | None = None) -> dic
                 region["startLine"] = int(finding["line"])
             location: dict[str, Any] = {
                 "physicalLocation": {
-                    "artifactLocation": {"uri": str(finding["path"]).replace("\\", "/")}
+                    "artifactLocation": {
+                        # Filenames are paths, not pre-escaped URI references.
+                        # Preserve separators while encoding %, #, ?, and UTF-8.
+                        "uri": quote(str(finding["path"]).replace("\\", "/"), safe="/")
+                    }
                 }
             }
             if region:
@@ -114,8 +119,13 @@ def render_sarif(pack: EvidencePack, *, evidence_path: str | None = None) -> dic
         for rule_id, (title, description) in RULES.items()
     ]
     invocation: dict[str, Any] = {
-        "executionSuccessful": pack.status.value == "pass",
-        "properties": {"evidenceSha256": pack.payload_sha256},
+        # A completed analysis can reject the change without the tool failing.
+        # Gate approval is a separate fact, not SARIF invocation success.
+        "executionSuccessful": True,
+        "properties": {
+            "evidenceSha256": pack.payload_sha256,
+            "gateStatus": pack.status.value,
+        },
     }
     if evidence_path:
         invocation["properties"]["evidencePath"] = evidence_path
