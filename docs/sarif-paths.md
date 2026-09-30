@@ -1,6 +1,6 @@
 # SARIF filename identity
 
-The unreleased URI-encoding fix preserves repository filenames when producing
+The URI-encoding fix in v0.3.1 preserves repository filenames when producing
 `patchwitness report evidence.json --format sarif`. It does not change the gate
 result, evidence schema, original finding paths, or evidence digest.
 
@@ -25,7 +25,7 @@ handling elsewhere in the tool.
 
 On v0.3.0 the raw URI can identify the wrong location even when the original
 Change Passport contains the correct filename. Keep that original evidence and
-regenerate the report with the fixed revision when available. A valid report or
+regenerate the report with v0.3.1 or later. A valid report or
 URI does not turn a policy failure into an approval.
 
 Validation covers round-trip URI identity, report-file serialization, and a
@@ -34,7 +34,9 @@ are maintainer-run synthetic checks, not a claim of successful GitHub Code
 Scanning upload or independent adoption. GitHub-hosted ingestion still needs a
 separate integration check.
 
-## Analysis completion is not gate approval (unreleased)
+<a id="analysis-completion-is-not-gate-approval-unreleased"></a>
+
+## Analysis completion is not gate approval (v0.3.1)
 
 SARIF `runs[0].invocations[0].executionSuccessful` describes whether analysis
 completed, not whether the proposed change should pass its policy. A completed

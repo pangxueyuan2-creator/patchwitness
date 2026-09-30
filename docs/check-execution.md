@@ -23,7 +23,9 @@ pipes, including a descendant holding a pipe after the shell exits. OS process
 creation and individual platform system calls cannot be preempted by this loop.
 A startup/pipe failure, output overflow or timeout never returns a passing result.
 
-## Source scope after checks (unreleased fix)
+<a id="source-scope-after-checks-unreleased-fix"></a>
+
+## Source scope after checks (v0.3.1)
 
 PW032 now also rejects newly changed tracked or index paths, not just content
 movement in paths recorded before checks. For example, a passing test that rewrites

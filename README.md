@@ -37,15 +37,15 @@ No package install needed. See the [demo README](demo/README.md) and the committ
 Structural scan only (no code execution):
 
 ```bash
-uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl" patchwitness scan --no-checks
+uvx --from "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.1/patchwitness-0.3.1-py3-none-any.whl" patchwitness scan --no-checks
 ```
 
 Or install once:
 
 ```bash
-pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl"
+pipx install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.1/patchwitness-0.3.1-py3-none-any.whl"
 # or
-uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.0/patchwitness-0.3.0-py3-none-any.whl"
+uv tool install "https://github.com/pangxueyuan2-creator/patchwitness/releases/download/v0.3.1/patchwitness-0.3.1-py3-none-any.whl"
 ```
 
 Then inside any Git repo:
@@ -72,7 +72,7 @@ A green passport does **not** mean the code is correct. It only means the record
 
 ## Setting up a policy
 
-Use [typed TOML policy values](docs/contracts.md). The unreleased strict loader rejects quoted booleans and scalar path lists instead of coercing them.
+Use [typed TOML policy values](docs/contracts.md). The strict loader in v0.3.1 rejects quoted booleans and scalar path lists instead of coercing them.
 
 ```bash
 patchwitness init
@@ -124,6 +124,9 @@ a content-addressed receipt. Its local nine-component fixture demo preserves
 
 Public alpha (v0.3.x). Evidence schema v1 is stable.
 Single maintainer. No production claims.
+
+Upgrading from v0.3.0? Read the [v0.3.1 migration notes](docs/release-notes/v0.3.1.md)
+for stricter policy/MCP inputs and corrected Git and SARIF evidence.
 
 Upgrading from v0.2.2? Read the [v0.3.0 migration notes](docs/release-notes/v0.3.0.md),
 especially the new check-output and evidence-input limits.

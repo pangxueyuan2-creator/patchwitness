@@ -1,6 +1,6 @@
 # Clean-room patch path identity
 
-This fix is unreleased. It does not alter the existing v0.3.0 release assets.
+This fix is included in v0.3.1. It does not alter the existing v0.3.0 release assets.
 
 ## Who is affected
 
@@ -42,7 +42,7 @@ than treating a past PASS as proof that the intended file was tested.
 This narrowly fixes patch path reconstruction. It does not make clean-room
 execution a hostile-code sandbox, create an atomic source snapshot, or
 normalize every Git configuration or attribute. Evidence-v1 fields, policy
-rules, command trust restrictions, dependencies and release versions are
+rules, command trust restrictions, and dependencies are
 unchanged.
 
 ## References and reproduction

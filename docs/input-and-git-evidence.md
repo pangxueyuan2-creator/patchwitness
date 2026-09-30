@@ -1,6 +1,6 @@
-# MCP input and Git evidence hardening (unreleased)
+# MCP input and Git evidence hardening (v0.3.1)
 
-These changes apply to source after v0.3.0; installing the v0.3.0 release wheel
+These changes are included in v0.3.1; installing the v0.3.0 release wheel
 alone does not include them. The evidence-v1 schema, tool names, protocol version,
 defaults, policy rules and runtime dependencies are unchanged.
 

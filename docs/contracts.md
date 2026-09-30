@@ -56,7 +56,7 @@ empty patterns, negative budgets, duplicate check IDs and empty commands remain.
 This change deliberately rejects files that previously relied on coercion. In
 v0.3.0, a quoted `"false"` could be converted to true, and a scalar path string
 could be iterated as individual characters. Correct such files with real TOML
-types on v0.3.0, then re-run verification with the fixed revision when available.
+types on v0.3.0, then re-run verification with v0.3.1 or later.
 Do not reuse prior approval based on a mistyped policy.
 
 This is validation at the TOML file boundary, including trusted-revision loads.
