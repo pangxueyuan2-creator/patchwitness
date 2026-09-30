@@ -2,8 +2,8 @@
 
 A passing check is useful only when the disposable worktree contains the candidate
 being verified, not an older version or a human-readable representation of it.
-These unreleased source changes tighten that boundary without changing the
-Evidence v1 schema, check commands, rule IDs, policy permissions or version.
+These v0.3.1 changes tighten that boundary without changing the
+Evidence v1 schema, check commands, rule IDs or policy permissions.
 
 ## Git index flags
 
@@ -72,7 +72,9 @@ protection against every concurrent source/target replacement. Use an isolated
 runner or OS sandbox for untrusted repositories and do not mutate a checkout
 during capture.
 
-## Git hooks in check subprocesses (unreleased)
+<a id="git-hooks-in-check-subprocesses-unreleased"></a>
+
+## Git hooks in check subprocesses (v0.3.1)
 
 Disabling hooks only on `git worktree add` does not disable them in Git commands
 subsequently launched by a check. A real installed-wheel reproduction invoked
@@ -100,7 +102,7 @@ Such intentional overrides are outside this boundary and are regression-tested
 as a limitation, not claimed to be blocked. The existing evidence field records
 requested clean-room configuration; it is not authenticated proof of descendant
 behavior or a claim that checks ran. No Evidence v1 fields or digest rules change.
-Re-run affected checks using the fixed source; a historical valid digest does not
+Re-run affected checks using v0.3.1 or later; a historical valid digest does not
 establish that its hooks were suppressed. This source change is not in v0.3.0.
 
 ## Reproduction and references

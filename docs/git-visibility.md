@@ -1,4 +1,4 @@
-# Git visibility preferences are not policy (unreleased)
+# Git visibility preferences are not policy (v0.3.1)
 
 Git's human-facing configuration can hide submodule changes or untracked files.
 PatchWitness now explicitly passes `--ignore-submodules=none` to the staged and

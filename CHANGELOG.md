@@ -5,8 +5,14 @@ uses semantic versioning once the v1 compatibility contract is reached.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-30
+
 ### Fixed
 
+- Reject check-induced expansion of tracked verification scope with PW032; new
+  unstaged outputs remain outside the recorded scope. See [execution boundaries](docs/check-execution.md).
+- Encode SARIF artifact URIs to preserve literal filename identity, including
+  Unicode, spaces, hash and percent characters. See [SARIF migration](docs/sarif-paths.md).
 - Validate MCP request and tool argument types before side effects; reject
   ambiguous JSON and oversized input lines while preserving following requests.
   Check execution requires an explicit JSON boolean opt-in. See
@@ -169,7 +175,10 @@ uses semantic versioning once the v1 compatibility contract is reached.
 - Typed Python SDK, analyzer entry points, and stdio MCP tools.
 - Cross-platform CLI, Docker image, composite GitHub Action, CI, tests, and real benchmark harness.
 
-[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.2...v0.3.0
+[0.2.2]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/pangxueyuan2-creator/patchwitness/compare/v0.1.0...v0.1.1
